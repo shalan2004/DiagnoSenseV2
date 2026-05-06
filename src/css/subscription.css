@@ -305,6 +305,12 @@
   font-size: 12px;
 }
 
+/* ── Light-mode inline feat-t for ppu-right spans without .feat-t ── */
+.subscription-page .ppu-right span:not(.feat-ck) {
+  color: #374151;
+  font-size: 12px;
+}
+
 .subscription-page .btn-plan {
   width: 100%;
   padding: 10px;
@@ -1085,4 +1091,72 @@
 
 [data-theme="dark"] .subscription-page .btn-cancel-sub {
   background: transparent;
+}
+
+/* ── Tab inactive label readability ── */
+[data-theme="dark"] .subscription-page .tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .subscription-page .tab-btn.active {
+  color: #ffffff !important;
+}
+
+/* ── Plan card text elements ── */
+[data-theme="dark"] .subscription-page .plan-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .subscription-page .plan-period,
+[data-theme="dark"] .subscription-page .plan-tagline {
+  color: #94a3b8;
+}
+
+/* ── Feature list text (main readability fix) ── */
+[data-theme="dark"] .subscription-page .feat-t {
+  color: #cbd5e1;
+}
+
+/* ── Pay-per-use inline spans without .feat-t class ── */
+[data-theme="dark"] .subscription-page .ppu-right span:not(.feat-ck) {
+  color: #cbd5e1;
+}
+
+/* ── Pay-per-use card labels ── */
+[data-theme="dark"] .subscription-page .ppu-lbl {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .subscription-page .ppu-sub {
+  color: #94a3b8;
+}
+
+/* ── Usage scale numbers ── */
+[data-theme="dark"] .subscription-page .u-foot span {
+  color: #f8fafc;
+}
+
+/* ── Enterprise card title ── */
+[data-theme="dark"] .subscription-page .ent-name {
+  color: #e2e8f0;
+}
+
+/* ── Green usage badge ── */
+[data-theme="dark"] .subscription-page .green-badge {
+  background: rgba(5, 150, 105, 0.15);
+  color: #34d399;
+}
+
+[data-theme="dark"] .subscription-page .g-dot {
+  background: #34d399;
+}
+
+/* ── Table header border ── */
+[data-theme="dark"] .subscription-page thead tr {
+  border-bottom-color: rgba(51, 65, 85, 0.7);
+}
+
+/* ── Banner plan name ── */
+[data-theme="dark"] .subscription-page .banner-plan-name {
+  color: #e2e8f0;
 }
