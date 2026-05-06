@@ -4115,4 +4115,56 @@ button.pp-note-delete-btn:hover {
 .pp-scope .status-badge.warning .status-dot,
 [data-theme="dark"] .pp-scope .status-badge.warning .status-dot {
     background-color: var(--status-warning-text) !important;
+}
+
+/* --- Fixes for Dark Mode Readability --- */
+
+/* Key Important Info priority labels & colors */
+[data-theme="dark"] .priority-title,
+[data-theme="dark"] .priority-card h3 {
+    color: var(--dm-text-primary) !important;
+}
+
+[data-theme="dark"] .note-item.high-priority {
+    background: rgba(255, 92, 92, 0.15) !important;
+    border-left: 4px solid #FF5C5C !important;
+}
+[data-theme="dark"] .note-item.medium-priority {
+    background: rgba(255, 165, 0, 0.15) !important;
+    border-left: 4px solid #FFB84D !important;
+}
+[data-theme="dark"] .note-item.low-priority {
+    background: rgba(148, 163, 184, 0.15) !important;
+    border-left: 4px solid #94A3B8 !important;
+}
+[data-theme="dark"] .note-item.high-priority .note-text,
+[data-theme="dark"] .note-item.medium-priority .note-text,
+[data-theme="dark"] .note-item.low-priority .note-text {
+    color: var(--dm-text-primary) !important;
+}
+
+/* Comparative Analysis cards */
+[data-theme="dark"] .chart-card {
+    background: var(--dm-bg-card) !important;
+    border: 1px solid var(--dm-border-color) !important;
+}
+[data-theme="dark"] .chart-header .chart-title {
+    color: var(--dm-text-primary) !important;
+}
+[data-theme="dark"] .chart-stats {
+    background: transparent !important;
+    border-top: 1px solid var(--dm-border-color) !important;
+}
+[data-theme="dark"] .mini-field .stat-label {
+    color: var(--dm-text-muted) !important;
+}
+[data-theme="dark"] .mini-field .stat-value {
+    color: var(--dm-text-primary) !important;
+}
+
+/* Decision Support text readability */
+[data-theme="dark"] .likelihood-card .likelihood-title,
+[data-theme="dark"] .likelihood-card .reasoning,
+[data-theme="dark"] .likelihood-card .reasoning strong {
+    color: var(--dm-text-primary) !important;
 }
