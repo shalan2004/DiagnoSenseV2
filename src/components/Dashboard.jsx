@@ -21,6 +21,7 @@ import {
   getPatientOverviewAPI,
   markPatientAttendedAPI,
 } from "./mockAPI.js";
+import { useTheme } from "./ThemeContext";
 
 const AVATAR_COLORS = [
   "#FF4D6D",
@@ -768,6 +769,7 @@ export default function Dashboard() {
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const { getCache, setCache } = usePageCache();
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -980,9 +982,9 @@ export default function Dashboard() {
                           );
                         });
                       })()}
-                      <circle cx="65" cy="65" r="39" fill="white" />
-                      <text x="65" y="61" textAnchor="middle" fontSize="13" fontWeight="800" fill="#1A1D2E" fontFamily="'Inter', sans-serif">450</text>
-                      <text x="65" y="76" textAnchor="middle" fontSize="10" fill="#8C91A7" fontFamily="'Inter', sans-serif">patients</text>
+                      <circle cx="65" cy="65" r="39" fill={isDark ? "#1e2940" : "white"} />
+                      <text x="65" y="61" textAnchor="middle" fontSize="13" fontWeight="800" fill={isDark ? "#f8fafc" : "#1A1D2E"} fontFamily="'Inter', sans-serif">{data?.widgets.total_patients || 450}</text>
+                      <text x="65" y="76" textAnchor="middle" fontSize="10" fill={isDark ? "#cbd5e1" : "#8C91A7"} fontFamily="'Inter', sans-serif">patients</text>
                     </svg>
                     <div className="dsn-legend-list">
                       {[
@@ -1073,28 +1075,33 @@ export default function Dashboard() {
                         { sub: "This Mo.", valPath: data?.widgets.monthly_growth.details.this_month, className: "dsn-growth-val--primary" },
                         { sub: "Diff.", valPath: data?.widgets.monthly_growth.details.difference },
                         { sub: "Growth", valPath: data?.widgets.monthly_growth.details.growth_rate },
-                      ].map((g, i) => (
-                        <div className="dsn-growth-col" key={i}>
-                          <div className="dsn-growth-sub">{g.sub}</div>
-                          <div
-                            className={`dsn-growth-val ${g.className || ""} ${g.sub === "Diff."
-                              ? g.valPath?.toString().startsWith("-")
-                                ? "dsn-growth-val--danger"
-                                : "dsn-growth-val--success"
-                              : ""
-                              } ${g.sub === "Growth"
-                                ? data?.widgets.monthly_growth.details.trend === "up"
-                                  ? "dsn-growth-val--success"
-                                  : "dsn-growth-val--danger"
-                                : ""
-                              }`}
-                          >
-                            {g.sub === "Growth"
-                              ? `${data?.widgets.monthly_growth.details.trend === "up" ? "↑" : "↓"}${g.valPath}`
-                              : (g.valPath ?? 0)}
+                      ].map((g, i) => {
+                        let semanticClass = "";
+                        const val = g.valPath;
+                        const trend = data?.widgets.monthly_growth.details.trend;
+
+                        if (g.sub === "Diff.") {
+                          const numVal = parseFloat(val);
+                          if (numVal > 0) semanticClass = "dsn-growth-val--success";
+                          else if (numVal < 0) semanticClass = "dsn-growth-val--danger";
+                          else semanticClass = "dsn-growth-val--neutral";
+                        } else if (g.sub === "Growth") {
+                          if (trend === "up") semanticClass = "dsn-growth-val--success";
+                          else if (trend === "down") semanticClass = "dsn-growth-val--danger";
+                          else semanticClass = "dsn-growth-val--neutral";
+                        }
+
+                        return (
+                          <div className="dsn-growth-col" key={i}>
+                            <div className="dsn-growth-sub">{g.sub}</div>
+                            <div className={`dsn-growth-val ${g.className || ""} ${semanticClass}`}>
+                              {g.sub === "Growth"
+                                ? `${trend === "up" ? "↑" : trend === "down" ? "↓" : ""}${val}`
+                                : (val ?? 0)}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1129,11 +1136,11 @@ export default function Dashboard() {
                           );
                         });
                       })()}
-                      <circle cx="65" cy="65" r="39" fill="white" />
-                      <text x="65" y="61" textAnchor="middle" fontSize="13" fontWeight="800" fill="#1A1D2E" fontFamily="'Inter', sans-serif">
+                      <circle cx="65" cy="65" r="39" fill={isDark ? "#1e2940" : "white"} />
+                      <text x="65" y="61" textAnchor="middle" fontSize="13" fontWeight="800" fill={isDark ? "#f8fafc" : "#1A1D2E"} fontFamily="'Inter', sans-serif">
                         {statusDistribution?.total_registered_patients || 0}
                       </text>
-                      <text x="65" y="76" textAnchor="middle" fontSize="10" fill="#8C91A7" fontFamily="'Inter', sans-serif">patients</text>
+                      <text x="65" y="76" textAnchor="middle" fontSize="10" fill={isDark ? "#cbd5e1" : "#8C91A7"} fontFamily="'Inter', sans-serif">patients</text>
                     </svg>
                     {hoveredStatus && (
                       <div className="dsn-custom-tooltip" style={{ position: "absolute", left: tooltipPos.x + 15, top: tooltipPos.y - 10, pointerEvents: "none", zIndex: 100 }}>
