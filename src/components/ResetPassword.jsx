@@ -221,7 +221,7 @@ const ResetPassword = ({ reset_token, onResetSuccess, onBackToForget }) => {
               color: "#10b981",
               marginBottom: "15px",
               padding: "10px",
-              background: "#d1fae5",
+              background: "var(--auth-success-bg, #d1fae5)",
               borderRadius: "8px",
               textAlign: "center",
             }}
@@ -255,7 +255,7 @@ const ResetPassword = ({ reset_token, onResetSuccess, onBackToForget }) => {
               }
             }}
             style={{
-              color: "#667eea",
+              color: "var(--auth-link-color, #667eea)",
               textDecoration: "none",
               fontSize: "14px",
               cursor: isLoading ? "not-allowed" : "pointer",

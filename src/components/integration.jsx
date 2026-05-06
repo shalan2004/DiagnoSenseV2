@@ -30,7 +30,7 @@ function Integration() {
             {/* <div className="intg-badge">SMART ON FHIR READY</div> */}
             <h1>Seamless <span className="intg-highlight">EHR Integration</span></h1>
             <p className="intg-subheadline">
-              Diagnosense integrates with existing hospital systems as a secure clinical intelligence layer.
+              DiagnoSense integrates with existing hospital systems as a secure clinical intelligence layer.
             </p>
             <p className="intg-microcopy">No workflow disruption. No data migration required.</p>
             <div className="intg-hero-actions">
@@ -90,7 +90,7 @@ function Integration() {
                     <line x1="12" y1="22.08" x2="12" y2="12" />
                   </svg>
                 </div>
-                <h3>Diagnosense AI</h3>
+                <h3>DiagnoSense AI</h3>
                 <p>Intelligence engine</p>
               </div>
 
@@ -241,7 +241,7 @@ function Integration() {
                   </div>
                   <h3>Read-Only by Default</h3>
                 </div>
-                <p>Diagnosense operates in read-only mode to ensure data integrity. We never modify your source records without explicit authorization.</p>
+                <p>DiagnoSense operates in read-only mode to ensure data integrity. We never modify your source records without explicit authorization.</p>
               </div>
 
               <div className="intg-security-card">
@@ -253,13 +253,13 @@ function Integration() {
                   </div>
                   <h3>No External Storage</h3>
                 </div>
-                <p>Clinical data remains in your EHR. Diagnosense processes insights in real-time without storing patient information externally.</p>
+                <p>Clinical data remains in your EHR. DiagnoSense processes insights in real-time without storing patient information externally.</p>
               </div>
             </div>
 
             <div className="intg-trust-banner">
               <h3>Clinical Intelligence Layer, Not a Data Repository</h3>
-              <p>Diagnosense acts as a clinical intelligence layer, not a data repository. Your data stays exactly where it belongs—secure in your infrastructure.</p>
+              <p>DiagnoSense acts as a clinical intelligence layer, not a data repository. Your data stays exactly where it belongs secure in your infrastructure.</p>
             </div>
           </div>
         </section>
@@ -313,7 +313,7 @@ function Integration() {
                   <div className="intg-setting-row">
                     <div className="intg-setting-info">
                       <h4>Enable Integration</h4>
-                      <p>Allow Diagnosense to access clinical data from your EHR</p>
+                      <p>Allow DiagnoSense to access clinical data from your EHR</p>
                     </div>
                     <label className="intg-toggle">
                       <input type="checkbox" defaultChecked />
@@ -356,7 +356,7 @@ function Integration() {
                   <div className="intg-setting-row">
                     <div className="intg-setting-info">
                       <h4>Permission Scope</h4>
-                      <p>Define access level for Diagnosense</p>
+                      <p>Define access level for DiagnoSense</p>
                     </div>
                     <div className="intg-select-wrapper">
                       <select>

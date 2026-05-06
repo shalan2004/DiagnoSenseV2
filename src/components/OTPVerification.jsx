@@ -130,7 +130,7 @@ const OTPVerification = ({
               color: "#10b981",
               marginBottom: "15px",
               padding: "10px",
-              background: "#d1fae5",
+              background: "var(--auth-success-bg, #d1fae5)",
               borderRadius: "8px",
               textAlign: "center",
             }}

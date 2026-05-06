@@ -780,3 +780,77 @@
     flex-direction: column;
   }
 }
+
+/* ==========================================================================
+   EHR INTEGRATION DARK MODE
+   ========================================================================== */
+[data-theme="dark"] .integration-page {
+  background: var(--dm-bg-page) !important;
+  color: var(--dm-text-primary) !important;
+  
+  /* Override locally scoped variables */
+  --bg-light: var(--dm-bg-subtle);
+  --bg-white: var(--dm-bg-card);
+  --text-dark: var(--dm-text-primary);
+  --text-gray: var(--dm-text-secondary);
+  --text-light: var(--dm-text-muted);
+  --border-color: var(--dm-border-subtle);
+  --card-shadow: var(--dm-shadow-card);
+  --card-shadow-lg: var(--dm-shadow-hover);
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --success-green: #34d399;
+  --critical-bg: rgba(239, 68, 68, 0.15);
+  --critical-red: #f87171;
+  --warning-yellow: #fbbf24;
+}
+
+/* Hardcoded color overrides */
+[data-theme="dark"] .integration-page .intg-data-card-icon {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] .integration-page .intg-security-icon {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .integration-page .intg-trust-banner {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .integration-page .intg-log-table th {
+  background: var(--dm-bg-subtle);
+}
+
+[data-theme="dark"] .integration-page select {
+  background: var(--dm-bg-input);
+}
+
+[data-theme="dark"] .integration-page select:focus {
+  border-color: var(--primary-blue);
+}
+
+[data-theme="dark"] .integration-page .intg-toggle input:not(:checked) + .intg-toggle-slider:before {
+  background: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .integration-page .intg-status-item {
+  background: var(--dm-bg-subtle);
+}
+
+[data-theme="dark"] .integration-page .intg-status-dot {
+  background: currentColor;
+}
+
+[data-theme="dark"] .integration-page .intg-btn-secondary {
+  color: #60a5fa !important;
+  border-color: #60a5fa !important;
+}
+
+[data-theme="dark"] .integration-page .intg-btn-secondary:hover {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .integration-page .intg-hero h1 .intg-highlight {
+  color: #60a5fa !important;
+}

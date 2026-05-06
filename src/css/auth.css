@@ -1208,3 +1208,194 @@ input:disabled {
   text-align: right;
   transition: color 0.3s ease;
 }
+
+/* ==========================================================================
+   DARK MODE OVERRIDES
+   ========================================================================== */
+
+[data-theme="dark"] body {
+     background: var(--dm-bg-page);
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .main-container {
+     background: var(--dm-bg-card);
+     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+     border: 1px solid var(--dm-border-color);
+}
+
+[data-theme="dark"] .left-section {
+     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+     border-right: 1px solid var(--dm-border-subtle);
+}
+
+[data-theme="dark"] .right-section {
+     background: var(--dm-bg-card);
+     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .tab {
+     background: var(--dm-bg-subtle);
+     color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .tab:hover:not(.active) {
+     background: var(--dm-hover-bg);
+     color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .form-header h2,
+[data-theme="dark"] .welcome-text h1 {
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .form-header p,
+[data-theme="dark"] .welcome-text p {
+     color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .form-group input[type="email"],
+[data-theme="dark"] .form-group input[type="password"],
+[data-theme="dark"] .form-group input[type="text"],
+[data-theme="dark"] .form-group input[type="tel"] {
+     background: var(--dm-bg-input);
+     border-color: var(--dm-border-subtle);
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .form-group input:focus {
+     border-color: #3b82f6;
+     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+[data-theme="dark"] .form-group input::placeholder {
+     color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .remember-me {
+     color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .divider::before,
+[data-theme="dark"] .divider::after {
+     background: var(--dm-border-subtle);
+}
+
+[data-theme="dark"] .divider span {
+     color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .social-btn {
+     background: var(--dm-bg-input);
+     border-color: var(--dm-border-subtle);
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .social-btn:hover {
+     background: var(--dm-hover-bg);
+     border-color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .glow-orb {
+     opacity: 0.2;
+}
+
+[data-theme="dark"] .data-grid {
+     opacity: 0.15;
+}
+
+[data-theme="dark"] .medical-icon svg {
+     stroke: #3b82f6;
+     opacity: 0.4;
+}
+
+[data-theme="dark"] .pulse-ring {
+     border-color: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .back-to-login a,
+[data-theme="dark"] .resend-link a,
+[data-theme="dark"] .forgot-password,
+[data-theme="dark"] .form-options a {
+     color: #60a5fa;
+}
+
+
+[data-theme="dark"] .back-to-login a:hover,
+[data-theme="dark"] .resend-link a:hover,
+[data-theme="dark"] .forgot-password:hover {
+     color: #93c5fd;
+}
+
+[data-theme="dark"] .error-message {
+     background: rgba(239, 68, 68, 0.1);
+     color: #fca5a5;
+     border-radius: 8px;
+     padding: 8px;
+}
+
+[data-theme="dark"] .success-message {
+     background: rgba(16, 185, 129, 0.1) !important;
+     color: #6ee7b7 !important;
+}
+
+[data-theme="dark"] .password-strength-bar-track {
+     background: var(--dm-border-subtle);
+}
+
+[data-theme="dark"] .password-toggle {
+     color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .password-toggle:hover {
+     color: #60a5fa;
+}
+
+[data-theme="dark"] .password-hint,
+[data-theme="dark"] .timer-text {
+     color: var(--dm-text-muted);
+}
+
+[data-theme="dark"] .password-requirements {
+     background: rgba(30, 41, 64, 0.4);
+     border-color: var(--dm-border-subtle);
+}
+
+[data-theme="dark"] .requirements-title {
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .password-requirements li {
+     color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .otp-input {
+     background: var(--dm-bg-input);
+     border-color: var(--dm-border-subtle);
+     color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .otp-input:focus {
+     border-color: #3b82f6;
+     background: var(--dm-bg-surface);
+}
+
+[data-theme="dark"] input:disabled {
+     background-color: rgba(30, 41, 64, 0.3);
+     opacity: 0.5;
+}
+
+[data-theme="dark"] .resend-btn {
+     color: #60a5fa;
+}
+
+[data-theme="dark"] .resend-btn:hover {
+     color: #93c5fd;
+}
+
+[data-theme="dark"] {
+     --auth-link-color: #60a5fa;
+     --auth-success-bg: rgba(16, 185, 129, 0.1);
+}
+
+
