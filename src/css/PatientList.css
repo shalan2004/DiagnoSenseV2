@@ -1313,3 +1313,11 @@ button.patient-card-delete-btn.edit-action-btn:hover {
   background: #2A66FF;
   color: #FFFFFF;
 }
+
+/* Fix: Harmonize card header background in dark mode */
+[data-theme="dark"] .patient-card .patient-header {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
