@@ -735,6 +735,7 @@ const normalizeTask = (t) => {
                 }}
               >
                 <div
+                  className={`med-task-stepper-circle ${step === 1 ? "active" : "completed"}`}
                   style={{
                     width: "38px",
                     height: "38px",
@@ -752,6 +753,7 @@ const normalizeTask = (t) => {
                   {stepper1Content}
                 </div>
                 <span
+                  className={`med-task-stepper-label ${step === 1 ? "active" : "completed"}`}
                   style={{
                     fontSize: "12px",
                     fontWeight: 600,
@@ -782,6 +784,7 @@ const normalizeTask = (t) => {
                 }}
               >
                 <div
+                  className={`med-task-stepper-circle ${step === 2 ? "active" : "inactive"}`}
                   style={{
                     width: "38px",
                     height: "38px",
@@ -799,6 +802,7 @@ const normalizeTask = (t) => {
                   {stepper2Content}
                 </div>
                 <span
+                  className={`med-task-stepper-label ${step === 2 ? "active" : "inactive"}`}
                   style={{
                     fontSize: "12px",
                     fontWeight: 600,
@@ -815,6 +819,7 @@ const normalizeTask = (t) => {
             {step === 1 && (
               <div>
                 <h2
+                  className="med-task-step-heading"
                   style={{
                     fontSize: "20px",
                     fontWeight: 700,
@@ -826,6 +831,7 @@ const normalizeTask = (t) => {
                   Schedule Next Visit
                 </h2>
                 <p
+                  className="med-task-step-desc"
                   style={{
                     fontSize: "14px",
                     color: "#8A94A6",
@@ -845,6 +851,7 @@ const normalizeTask = (t) => {
                     }}
                   >
                     <button
+                      className="med-task-choice-btn"
                       onClick={() => {
                         setShowDatePicker(true);
                         setHasNextVisit(true);
@@ -873,6 +880,7 @@ const normalizeTask = (t) => {
                       Yes
                     </button>
                     <button
+                      className="med-task-choice-btn"
                       disabled={isSubmitting}
                       onClick={async () => {
                         // "No" path: create a draft visit to get a visit id, then go to step 2
@@ -924,6 +932,7 @@ const normalizeTask = (t) => {
                 {showDatePicker && (
                   <div style={{ marginTop: "28px" }}>
                     <div
+                      className={`med-task-date-picker-wrapper ${visitSaved ? "saved" : ""}`}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -936,6 +945,7 @@ const normalizeTask = (t) => {
                       }}
                     >
                       <div
+                        className="med-task-calendar-icon-box"
                         style={{
                           width: "34px",
                           height: "34px",
@@ -963,6 +973,7 @@ const normalizeTask = (t) => {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div
+                          className="med-task-input-label"
                           style={{
                             fontSize: "11px",
                             fontWeight: 600,
@@ -1383,20 +1394,21 @@ const normalizeTask = (t) => {
                           }}
                         >
                           {savedTasksInForm.map((t) => (
-                            <div
-                              key={t.id}
-                              style={{
-                                padding: "10px 14px",
-                                background: "#E9F0FF",
-                                borderRadius: "8px",
-                                border: "1px solid #C0D0FF",
-                                fontSize: "13px",
-                                color: "#0E1A34",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                              }}
-                            >
+                              <div
+                                key={t.id}
+                                className="med-task-task-added-item"
+                                style={{
+                                  padding: "10px 14px",
+                                  background: "#E9F0FF",
+                                  borderRadius: "8px",
+                                  border: "1px solid #C0D0FF",
+                                  fontSize: "13px",
+                                  color: "#0E1A34",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                }}
+                              >
                               <span>
                                 <strong>{t.title}</strong>
                                 {t.due ? ` — Due: ${t.due}` : ""}
