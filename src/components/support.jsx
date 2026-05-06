@@ -258,7 +258,7 @@ function Support() {
               style={{
                 width: "8px",
                 height: "8px",
-                background: "#00C187",
+                background: "var(--status-stable-text)",
                 borderRadius: "50%",
               }}
             ></span>
@@ -279,7 +279,7 @@ function Support() {
                     height="17" 
                     viewBox="0 0 24 24"
                     fill="none" 
-                    stroke="#718096" 
+                    stroke="var(--dm-text-muted)" 
                     strokeWidth="2" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
@@ -447,9 +447,10 @@ function Support() {
                     disabled
                     readOnly
                     style={{
-                      backgroundColor: "var(--input-disabled-bg, #F3F4F6)",
-                      color: "var(--text-secondary, #6B7280)",
+                      backgroundColor: "var(--dm-bg-subtle)",
+                      color: "var(--dm-text-muted)",
                       cursor: "not-allowed",
+                      border: "1px solid var(--dm-border-subtle)"
                     }}
                     title="Identity is locked to your account"
                   />
@@ -571,7 +572,7 @@ function Support() {
                       <span
                         style={{
                           fontSize: "12px",
-                          color: "#6B7280",
+                          color: "var(--dm-text-secondary)",
                           marginLeft: "8px",
                         }}
                       >
@@ -582,7 +583,7 @@ function Support() {
                   <p
                     style={{
                       fontSize: "11px",
-                      color: "#9CA3AF",
+                      color: "var(--dm-text-muted)",
                       marginTop: "4px",
                     }}
                   >
@@ -594,12 +595,12 @@ function Support() {
                 {formSuccess && (
                   <div
                     style={{
-                      background: "#E6FFF5",
-                      border: "1px solid #00C187",
+                      background: "var(--status-stable-bg)",
+                      border: "1px solid var(--status-stable-border)",
                       borderRadius: "8px",
                       padding: "12px 16px",
                       marginBottom: "16px",
-                      color: "#00875A",
+                      color: "var(--status-stable-text)",
                       fontSize: "14px",
                       display: "flex",
                       alignItems: "flex-start",
@@ -615,12 +616,12 @@ function Support() {
                 {formError && (
                   <div
                     style={{
-                      background: "#FEF2F2",
-                      border: "1px solid #FCA5A5",
+                      background: "var(--status-critical-bg)",
+                      border: "1px solid var(--status-critical-border)",
                       borderRadius: "8px",
                       padding: "12px 16px",
                       marginBottom: "16px",
-                      color: "#B91C1C",
+                      color: "var(--status-critical-text)",
                       fontSize: "14px",
                       display: "flex",
                       alignItems: "flex-start",
