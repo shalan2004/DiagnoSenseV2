@@ -1234,3 +1234,185 @@
     display: inline;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES — Add Patient / Wizard Forms
+   ══════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .wizard-card {
+  background: var(--dm-bg-card, #1e2940);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .page-header h1,
+[data-theme="dark"] .step-title,
+[data-theme="dark"] .upload-card-title h4 {
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .page-header p,
+[data-theme="dark"] .step-subtitle,
+[data-theme="dark"] .upload-card-subtitle,
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .toggle-label {
+  color: var(--dm-text-secondary, #94a3b8);
+}
+
+[data-theme="dark"] .wizard-header {
+  background: var(--dm-bg-card, #1e2940);
+  border-bottom: 1px solid var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .step-circle {
+  background: var(--dm-bg-page, #0f172a);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+  color: var(--dm-text-secondary, #94a3b8);
+}
+
+[data-theme="dark"] .step-item.active .step-circle {
+  background: linear-gradient(135deg, #2A66FF, #467DFF);
+  border-color: #2A66FF;
+  color: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(42, 102, 255, 0.2), 0 2px 8px rgba(42, 102, 255, 0.4);
+}
+
+[data-theme="dark"] .step-item.completed .step-circle {
+  background: linear-gradient(135deg, #00C187, #00D898);
+  border-color: #00C187;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .step-connector {
+  background: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea,
+[data-theme="dark"] .custom-select-trigger,
+[data-theme="dark"] .radio-button,
+[data-theme="dark"] .pill {
+  background: var(--dm-bg-input, rgba(30, 41, 64, 0.8));
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .form-input::placeholder,
+[data-theme="dark"] .form-textarea::placeholder,
+[data-theme="dark"] .custom-select-trigger.placeholder {
+  color: var(--dm-text-secondary, #94a3b8) !important;
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-textarea:focus {
+  background: var(--dm-bg-card, #1e2940);
+  border-color: #2A66FF;
+  box-shadow: 0 0 0 3px rgba(42, 102, 255, 0.15);
+}
+
+[data-theme="dark"] .custom-options-list {
+  background: var(--dm-bg-card, #1e2940);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .custom-option {
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .custom-option:hover {
+  background-color: rgba(42, 102, 255, 0.1);
+  color: #2A66FF;
+}
+
+[data-theme="dark"] .custom-option.selected {
+  background-color: rgba(42, 102, 255, 0.15);
+  color: #2A66FF;
+}
+
+[data-theme="dark"] .radio-button:hover,
+[data-theme="dark"] .pill:hover {
+  background: rgba(42, 102, 255, 0.1);
+  border-color: #2A66FF;
+}
+
+[data-theme="dark"] .radio-button.selected,
+[data-theme="dark"] .pill.selected {
+  background: linear-gradient(135deg, #2A66FF, #467DFF);
+  border-color: #2A66FF;
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .conditional-field {
+  background: rgba(30, 41, 64, 0.5);
+  border-color: #2A66FF;
+}
+
+[data-theme="dark"] .upload-card {
+  background: rgba(30, 41, 64, 0.5);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .dropzone {
+  background: var(--dm-bg-card, #1e2940);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .dropzone:hover {
+  background: rgba(42, 102, 255, 0.05);
+  border-color: #2A66FF;
+}
+
+[data-theme="dark"] .dropzone-text {
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .uploaded-file-item {
+  background: var(--dm-bg-card, #1e2940);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .file-name {
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .file-type-icon {
+  background: rgba(42, 102, 255, 0.15);
+}
+
+[data-theme="dark"] .tag-item .toggle-label {
+  color: var(--dm-text-primary, #f1f5f9);
+}
+
+[data-theme="dark"] .file-remove-btn svg {
+  color: var(--dm-text-secondary, #94a3b8);
+}
+
+[data-theme="dark"] .file-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .file-remove-btn:hover svg {
+  color: #EF4444;
+}
+
+[data-theme="dark"] .form-input.target-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #EF4444;
+}
+
+[data-theme="dark"] .back {
+  background-color: rgba(30, 41, 64, 0.8);
+  color: var(--dm-text-primary, #f1f5f9);
+  border: 1px solid var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .back:hover {
+  background-color: rgba(42, 102, 255, 0.1);
+  border-color: #2A66FF;
+}
+
+[data-theme="dark"] .back svg {
+  color: var(--dm-text-primary, #f1f5f9);
+}

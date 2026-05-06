@@ -160,3 +160,60 @@
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ══════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES — Edit Patient
+   ══════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .wizard-mode-badge {
+  background: rgba(79, 70, 229, 0.15);
+  border-color: rgba(79, 70, 229, 0.3);
+  color: #818CF8;
+}
+
+[data-theme="dark"] .existing-files-label {
+  color: var(--dm-text-secondary, #94a3b8);
+}
+
+[data-theme="dark"] .existing-file-item {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .existing-file-item.removed {
+  background: var(--dm-bg-page, #0f172a);
+  border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+}
+
+[data-theme="dark"] .removed-badge {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+}
+
+[data-theme="dark"] .new-file-badge {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #86EFAC;
+}
+
+[data-theme="dark"] .new-file-item {
+  background: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+[data-theme="dark"] .btn-view-file,
+[data-theme="dark"] .undo-btn {
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+[data-theme="dark"] .btn-view-file:hover,
+[data-theme="dark"] .undo-btn:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+[data-theme="dark"] .edit-success-toast {
+  background: var(--dm-bg-card, #1e2940);
+  border-color: #059669;
+  color: #34D399;
+}
