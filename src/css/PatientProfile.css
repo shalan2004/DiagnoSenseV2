@@ -3876,3 +3876,243 @@ button.pp-note-delete-btn:hover {
     opacity: 1;
     transition: filter 0.35s ease, opacity 0.35s ease;
 }
+
+/* ==========================================================================
+   DARK MODE CONSISTENCY & HIERARCHY
+   ========================================================================== */
+
+[data-theme="dark"] body {
+    background: var(--dm-bg-page);
+    color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .background-layer {
+    background: var(--dm-bg-page);
+}
+
+[data-theme="dark"] .top-navbar,
+[data-theme="dark"] .patient-header,
+[data-theme="dark"] .patient-profile-page .pp-header {
+    background: var(--dm-bg-navbar) !important;
+    border-bottom-color: var(--dm-border-color) !important;
+}
+
+[data-theme="dark"] .search-input {
+    background: var(--dm-bg-input) !important;
+    border-color: var(--dm-border-color) !important;
+    color: var(--dm-text-primary) !important;
+}
+
+[data-theme="dark"] .search-input:focus {
+    background: var(--dm-bg-card) !important;
+    border-color: #2A66FF !important;
+}
+
+[data-theme="dark"] .credits-badge {
+    background: rgba(42, 102, 255, 0.15) !important;
+    color: #7ca3ff !important;
+}
+
+[data-theme="dark"] .status-indicator {
+    background: rgba(0, 193, 135, 0.15) !important;
+    color: #00e6a1 !important;
+}
+
+[data-theme="dark"] .status-dot {
+    background: #00e6a1 !important;
+}
+
+/* Typography & Headings */
+[data-theme="dark"] .patient-details h1,
+[data-theme="dark"] .card-title,
+[data-theme="dark"] .section-header,
+[data-theme="dark"] .priority-title,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .chart-title,
+[data-theme="dark"] .likelihood-title,
+[data-theme="dark"] .report-name,
+[data-theme="dark"] .accordion-header {
+    color: var(--dm-text-primary) !important;
+}
+
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .pp-scope .btn-secondary {
+    color: #7ca3ff !important;
+    border-color: #7ca3ff !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .pp-scope .btn-secondary:hover {
+    background: rgba(124, 163, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .patient-meta,
+[data-theme="dark"] .info-label,
+[data-theme="dark"] .note-meta,
+[data-theme="dark"] .note-date,
+[data-theme="dark"] .stat-label,
+[data-theme="dark"] .report-date,
+[data-theme="dark"] .activity-time {
+    color: var(--dm-text-muted) !important;
+}
+
+/* Tab Bar Navigation */
+[data-theme="dark"] .content-layer .tab-nav {
+    background: var(--dm-bg-card) !important;
+    box-shadow: var(--dm-shadow-sm) !important;
+    border: 1px solid var(--dm-border-color);
+}
+
+[data-theme="dark"] .tab-btn {
+    color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .tab-btn:hover {
+    background: var(--dm-hover-bg);
+    color: var(--dm-text-primary);
+}
+
+[data-theme="dark"] .tab-btn.active {
+    background: rgba(42, 102, 255, 0.15);
+    color: #7ca3ff;
+}
+
+[data-theme="dark"] .tab-scroll-btn {
+    background: var(--dm-bg-card) !important;
+    border-color: var(--dm-border-color) !important;
+    color: var(--dm-text-primary) !important;
+}
+
+[data-theme="dark"] .tab-scroll-btn svg {
+    stroke: var(--dm-text-primary) !important;
+}
+
+/* Card Surfaces & Containers */
+[data-theme="dark"] .card,
+[data-theme="dark"] .info-item,
+[data-theme="dark"] .priority-card,
+[data-theme="dark"] .chart-card,
+[data-theme="dark"] .section-card,
+[data-theme="dark"] .task-item,
+[data-theme="dark"] .activity-item,
+[data-theme="dark"] .report-card,
+[data-theme="dark"] .accordion-item,
+[data-theme="dark"] .history-entry,
+[data-theme="dark"] .timeline-node {
+    background: var(--dm-bg-card) !important;
+    border-color: var(--dm-border-color) !important;
+    box-shadow: var(--dm-shadow-card) !important;
+}
+
+[data-theme="dark"] .card:hover,
+[data-theme="dark"] .info-item:hover,
+[data-theme="dark"] .priority-card:hover,
+[data-theme="dark"] .chart-card:hover,
+[data-theme="dark"] .section-card:hover,
+[data-theme="dark"] .task-item:hover,
+[data-theme="dark"] .activity-item:hover,
+[data-theme="dark"] .report-card:hover,
+[data-theme="dark"] .timeline-node:hover {
+    box-shadow: var(--dm-shadow-hover) !important;
+    border-color: rgba(42, 102, 255, 0.4) !important;
+}
+
+/* Content Elements */
+[data-theme="dark"] .ai-insight {
+    background: rgba(42, 102, 255, 0.08) !important;
+    border-left-color: #2A66FF !important;
+    color: var(--dm-text-primary) !important;
+}
+
+[data-theme="dark"] .info-value,
+[data-theme="dark"] .note-text,
+[data-theme="dark"] .task-text,
+[data-theme="dark"] .activity-text,
+[data-theme="dark"] .stat-value,
+[data-theme="dark"] .reasoning,
+[data-theme="dark"] #activity h3 {
+    color: var(--dm-text-primary) !important;
+}
+
+/* Activity Log Specifics */
+[data-theme="dark"] .activity-timeline::before {
+    background: var(--dm-border-color);
+}
+
+[data-theme="dark"] .activity-item::before {
+    border-color: var(--dm-bg-card) !important;
+    box-shadow: 0 0 0 2px var(--dm-border-color) !important;
+}
+
+/* Likelihood Cards */
+[data-theme="dark"] .likelihood-card.high {
+    background: linear-gradient(135deg, rgba(255, 92, 92, 0.15), rgba(255, 92, 92, 0.05)) !important;
+}
+[data-theme="dark"] .likelihood-card.medium {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.15), rgba(255, 165, 0, 0.05)) !important;
+}
+[data-theme="dark"] .likelihood-card.low {
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.15), rgba(148, 163, 184, 0.05)) !important;
+}
+
+[data-theme="dark"] .confidence {
+    color: var(--dm-text-primary);
+}
+
+/* Note Item Hierarchy */
+[data-theme="dark"] .note-item {
+    background: var(--dm-bg-subtle);
+    border-color: var(--dm-border-color);
+}
+
+[data-theme="dark"] .note-item.high-priority {
+    background: rgba(255, 92, 92, 0.05);
+    border-left-color: #FF5C5C;
+}
+
+[data-theme="dark"] .note-item.medium-priority {
+    background: rgba(255, 165, 0, 0.05);
+    border-left-color: #FFA500;
+}
+
+[data-theme="dark"] .pp-note-edit-textarea {
+    background: var(--dm-bg-input);
+    color: var(--dm-text-primary);
+    border-color: var(--dm-border-color);
+}
+
+[data-theme="dark"] .pp-note-cancel-btn {
+    border-color: var(--dm-border-color);
+    color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .pp-note-cancel-btn:hover {
+    background: var(--dm-hover-bg);
+    color: var(--dm-text-primary);
+}
+
+/* Charts & Stats */
+[data-theme="dark"] .chart-stats,
+[data-theme="dark"] .mini-chart {
+    border-top-color: var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .mini-field:not(:last-child) {
+    border-right-color: var(--dm-border-subtle) !important;
+}
+
+/* Status Badge Indicator Overrides */
+.pp-scope .status-badge.stable .status-dot,
+[data-theme="dark"] .pp-scope .status-badge.stable .status-dot {
+    background-color: var(--status-stable-text) !important;
+}
+
+.pp-scope .status-badge.critical .status-dot,
+[data-theme="dark"] .pp-scope .status-badge.critical .status-dot {
+    background-color: var(--status-critical-text) !important;
+}
+
+.pp-scope .status-badge.warning .status-dot,
+[data-theme="dark"] .pp-scope .status-badge.warning .status-dot {
+    background-color: var(--status-warning-text) !important;
+}
