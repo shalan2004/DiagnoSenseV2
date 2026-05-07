@@ -51,6 +51,7 @@ const EditPatient = () => {
   const { unreadCount, openNotifications } = useNotifications();
   const { isSidebarCollapsed } = useSidebar();
   const { credits, isCreditsLoading } = useSubscription();
+  const { updateCachedPatient } = usePageCache();
 
   // ── Fetch / loading state ──
   const [isFetching, setIsFetching] = useState(true);
@@ -523,6 +524,12 @@ const EditPatient = () => {
 
       if (result.success) {
         const { hasAiRelevantChanges } = computeChanges();
+
+        // Smart update: update the patient's card info in cache so navigation stays fresh
+        updateCachedPatient(patientId, {
+          name: formData.fullName,
+          age: formData.age,
+        });
 
         // ── Invalidate patient list + dashboard caches so both re-fetch on next visit ──
         window.dispatchEvent(new CustomEvent("patientListInvalidated"));

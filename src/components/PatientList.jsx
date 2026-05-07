@@ -404,7 +404,14 @@ const PatientList = () => {
   const [pageSize, setPageSize] = useState(12);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { getCache, setCache, invalidatePrefix } = usePageCache();
+  const {
+    getCache,
+    setCache,
+    invalidatePatientListCache,
+    updateCachedPatient,
+    isPatientListDirty,
+    setPatientListDirty,
+  } = usePageCache();
 
   const gridRef = useRef(null);
   const cardRef = useRef(null);
@@ -438,13 +445,18 @@ const PatientList = () => {
 
   const fetchPatients = async (pageNumber) => {
     const cacheKey = `patients_page_${pageNumber}`;
-    const cached = getCache(cacheKey);
-    if (cached) {
-      setPatients(cached.patients);
-      setCurrentPage(cached.currentPage);
-      setLastPage(cached.lastPage);
-      setLoading(false);
-      return;
+    const isDirty = isPatientListDirty();
+
+    // Only use cache if NOT dirty
+    if (!isDirty) {
+      const cached = getCache(cacheKey);
+      if (cached) {
+        setPatients(cached.patients);
+        setCurrentPage(cached.currentPage);
+        setLastPage(cached.lastPage);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -591,13 +603,17 @@ const PatientList = () => {
   // ── Search fetch (reuses same response parsing + patient mapping as fetchPatients) ──
   const fetchSearch = async (pageNumber, term) => {
     const cacheKey = `patients_search_${term}_${pageNumber}`;
-    const cached = getCache(cacheKey);
-    if (cached) {
-      setPatients(cached.patients);
-      setCurrentPage(cached.currentPage);
-      setLastPage(cached.lastPage);
-      setLoading(false);
-      return;
+    const isDirty = isPatientListDirty();
+
+    if (!isDirty) {
+      const cached = getCache(cacheKey);
+      if (cached) {
+        setPatients(cached.patients);
+        setCurrentPage(cached.currentPage);
+        setLastPage(cached.lastPage);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -728,13 +744,17 @@ const PatientList = () => {
     const statusSlug = STATUS_MAP[status] || status;
 
     const cacheKey = `patients_status_${statusSlug}_${pageNumber}`;
-    const cached = getCache(cacheKey);
-    if (cached) {
-      setPatients(cached.patients);
-      setCurrentPage(cached.currentPage);
-      setLastPage(cached.lastPage);
-      setLoading(false);
-      return;
+    const isDirty = isPatientListDirty();
+
+    if (!isDirty) {
+      const cached = getCache(cacheKey);
+      if (cached) {
+        setPatients(cached.patients);
+        setCurrentPage(cached.currentPage);
+        setLastPage(cached.lastPage);
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(true);
@@ -881,44 +901,58 @@ const PatientList = () => {
     } else {
       fetchPatients(currentPage);
     }
+
+    // Clear dirty flag after triggering revalidation fetch
+    if (isPatientListDirty()) {
+      setPatientListDirty(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchTerm, activeFilter]);
+  }, [currentPage, searchTerm, activeFilter, isPatientListDirty, setPatientListDirty]);
 
   // ── Sync status from PatientProfile updates ──
   useEffect(() => {
     const handleStatusSync = (e) => {
       const { patientId: updatedId, status: updatedStatus } = e.detail;
 
+      const STATUS_META = {
+        stable: {
+          statusLabel: "🟢 Stable",
+          statusType: "",
+          insightStyle: { borderLeftColor: "#00C187", background: "#F4FDF8" },
+        },
+        critical: {
+          statusLabel: "🔴 Critical",
+          statusType: "",
+          insightStyle: { borderLeftColor: "#FF5C5C", background: "#FFECEC" },
+        },
+        "under review": {
+          statusLabel: "🟡 Under Review",
+          statusType: "warning",
+          insightStyle: { borderLeftColor: "#FFA500", background: "#FFF4E6" },
+        },
+      };
+
+      const displayStatus =
+        updatedStatus === "under review" ? "underReview" : updatedStatus;
+      const meta = STATUS_META[updatedStatus] ?? STATUS_META["stable"];
+
+      // Smart update: update the patient in cache across all pages/filters
+      updateCachedPatient(updatedId, {
+        status: displayStatus,
+        ...meta,
+      });
+
       if (activeFilter !== "all") {
-        // Filter is active: refetch to remove patients that no longer match
+        // Filter is active: we MUST invalidate and refetch because a status change
+        // likely moves the patient in/out of this specific filtered result set.
+        invalidatePatientListCache();
         if (activeFilter === "critical") fetchByStatus(currentPage, "critical");
         else if (activeFilter === "stable")
           fetchByStatus(currentPage, "stable");
         else if (activeFilter === "underReview")
           fetchByStatus(currentPage, "underReview");
       } else {
-        // No filter: update the matching card's status label/style in-place
-        const STATUS_META = {
-          stable: {
-            statusLabel: "🟢 Stable",
-            statusType: "",
-            insightStyle: { borderLeftColor: "#00C187", background: "#F4FDF8" },
-          },
-          critical: {
-            statusLabel: "🔴 Critical",
-            statusType: "",
-            insightStyle: { borderLeftColor: "#FF5C5C", background: "#FFECEC" },
-          },
-          "under review": {
-            statusLabel: "🟡 Under Review",
-            statusType: "warning",
-            insightStyle: { borderLeftColor: "#FFA500", background: "#FFF4E6" },
-          },
-        };
-        const displayStatus =
-          updatedStatus === "under review" ? "underReview" : updatedStatus;
-        const meta = STATUS_META[updatedStatus] ?? STATUS_META["stable"];
-
+        // No filter (All Patients): update the matching card in-place for immediate feedback
         setPatients((prev) =>
           prev.map((p) =>
             String(p.id) === String(updatedId)
@@ -932,12 +966,19 @@ const PatientList = () => {
     window.addEventListener("patientStatusUpdated", handleStatusSync);
     return () =>
       window.removeEventListener("patientStatusUpdated", handleStatusSync);
-  }, [activeFilter, currentPage]); // re-bind when filter or page changes
+  }, [activeFilter, currentPage, updateCachedPatient, invalidatePatientListCache]);
 
   // ── Sync next visit date from PatientProfile updates ──
   useEffect(() => {
     const handleNextVisitSync = (e) => {
       const { patientId: updatedId, next_visit_date } = e.detail;
+
+      // Smart update: ensure any cached patient list reflects the new date
+      updateCachedPatient(updatedId, {
+        nextAppointment: next_visit_date || "No appointment scheduled",
+      });
+
+      // Update local state for immediate UI feedback
       setPatients((prev) =>
         prev.map((p) =>
           String(p.id) === String(updatedId)
@@ -948,11 +989,8 @@ const PatientList = () => {
     };
     window.addEventListener("patientNextVisitUpdated", handleNextVisitSync);
     return () =>
-      window.removeEventListener(
-        "patientNextVisitUpdated",
-        handleNextVisitSync,
-      );
-  }, []); // no dependencies — only needs to run once
+      window.removeEventListener("patientNextVisitUpdated", handleNextVisitSync);
+  }, [updateCachedPatient]);
 
   const visiblePatients = patients;
 

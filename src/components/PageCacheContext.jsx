@@ -24,46 +24,45 @@ import React, { createContext, useContext, useRef, useEffect } from "react";
 
 // ─── Module-level store — survives route unmounts ────────────────────────────
 const _cache = new Map();
+let _patientListDirty = false;
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 const PageCacheContext = createContext(null);
 
 export function PageCacheProvider({ children }) {
-  // Helpers are stable references; they never change, so no useState needed.
+  const invalidatePrefix = (prefix) => {
+    for (const key of _cache.keys()) {
+      if (key.startsWith(prefix)) {
+        _cache.delete(key);
+      }
+    }
+  };
+
+  const markPatientListDirty = () => {
+    _patientListDirty = true;
+  };
+
   const helpers = useRef({
-    /** Return cached value or undefined */
-    getCache(key) {
-      return _cache.get(key);
-    },
-
-    /** Store a value under key */
-    setCache(key, value) {
-      _cache.set(key, value);
-    },
-
-    /** Delete a single key */
-    invalidateCache(key) {
-      _cache.delete(key);
-    },
-
-    /** Delete all keys whose name starts with prefix */
-    invalidatePrefix(prefix) {
-      for (const key of _cache.keys()) {
-        if (key.startsWith(prefix)) {
-          _cache.delete(key);
+    getCache: (key) => _cache.get(key),
+    setCache: (key, value) => _cache.set(key, value),
+    invalidateCache: (key) => _cache.delete(key),
+    invalidatePrefix,
+    clearAll: () => _cache.clear(),
+    updateCachedPatient: (patientId, updates) => {
+      for (const [key, value] of _cache.entries()) {
+        if (key.startsWith("patients_") && value?.patients) {
+          const updatedList = value.patients.map((p) =>
+            String(p.id) === String(patientId) ? { ...p, ...updates } : p
+          );
+          _cache.set(key, { ...value, patients: updatedList });
         }
       }
     },
-
-    /** Clear the entire cache — use on logout / user switch */
-    clearAll() {
-      _cache.clear();
-    },
-
-    /** Optional helper for future use */
-    getCurrentUserId() {
-      return undefined;
-    },
+    invalidatePatientListCache: () => invalidatePrefix("patients_"),
+    markPatientListDirty,
+    isPatientListDirty: () => _patientListDirty,
+    setPatientListDirty: (val) => { _patientListDirty = val; },
+    getCurrentUserId: () => undefined,
   });
 
   // ── Global invalidation event listeners ──────────────────────────────────
@@ -73,6 +72,7 @@ export function PageCacheProvider({ children }) {
     // patients_* cache cleared when list changes
     const onPatientListInvalidated = () => {
       h.invalidatePrefix("patients_");
+      h.markPatientListDirty();
     };
 
     // subscription cache cleared on plan change
@@ -94,11 +94,15 @@ export function PageCacheProvider({ children }) {
     // Next visit change → Today's Appointments / Critical Queue may change
     const onPatientNextVisitUpdated = () => {
       h.invalidatePrefix("dashboard_");
+      h.invalidatePrefix("patients_");
+      h.markPatientListDirty();
     };
 
     // Status change → Patient Status Distribution on Dashboard may change
     const onPatientStatusUpdated = () => {
       h.invalidatePrefix("dashboard_");
+      h.invalidatePrefix("patients_");
+      h.markPatientListDirty();
     };
 
     // ── Auth events: wipe entire cache to prevent cross-user data leakage ──
@@ -143,6 +147,11 @@ export function usePageCache() {
       setCache: () => {},
       invalidateCache: () => {},
       invalidatePrefix: () => {},
+      updateCachedPatient: () => {},
+      invalidatePatientListCache: () => {},
+      markPatientListDirty: () => {},
+      isPatientListDirty: () => false,
+      setPatientListDirty: () => {},
       clearAll: () => {},
       getCurrentUserId: () => undefined,
     };

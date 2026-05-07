@@ -896,6 +896,17 @@ const normalizeTask = (t) => {
                           setVisitId(res.data.id);
                         }
                         setHasNextVisit(false);
+
+                        // If user explicitly says NO next visit, clear it in the list too
+                        window.dispatchEvent(
+                          new CustomEvent("patientNextVisitUpdated", {
+                            detail: {
+                              patientId,
+                              next_visit_date: null,
+                            },
+                          }),
+                        );
+
                         goToStep(2);
                       }}
                       style={{
