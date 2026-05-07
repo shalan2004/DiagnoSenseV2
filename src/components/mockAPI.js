@@ -71,7 +71,6 @@ const apiCall = async (endpoint, options = {}) => {
   if (key) {
     inflightRequests.set(key, promise);
     promise.finally(() => {
-      // Remove from map once the request lands, allowing natural refresh
       inflightRequests.delete(key);
     });
   }
@@ -79,42 +78,17 @@ const apiCall = async (endpoint, options = {}) => {
   return promise;
 };
 
-// export const registerAPI = async (userData) => {
-//   const result = await apiCall('/api/register/doctor', {
-//     method: 'POST',
-//     body: JSON.stringify({
-//       name: userData.name,
-//       email: userData.email,
-//       phone: userData.phone,
-//       password: userData.password,
-//       password_confirmation: userData.password_confirmation,
-//     }),
-//   });
 
-//   if (result.success && result.data && result.data.token) {
-//     setCookie('user_token', result.data.token, 7);
-//     setJsonCookie('user', result.data.user, 7);
-//     setCookie('isAuthenticated', 'true', 7);
-//   }
-
-//   return result;
-// };
 export const registerAPI = async (userData) => {
   const payload = {
     name: userData.name,
+    contact: userData.contact,
     password: userData.password,
     password_confirmation: userData.password_confirmation,
+    specialization: userData.specialization,
   };
 
-  if (userData.email && userData.email.trim() !== "") {
-    payload.email = userData.email;
-  }
-
-  if (userData.phone && userData.phone.trim() !== "") {
-    payload.phone = userData.phone;
-  }
-
-  const result = await apiCall('/api/register/doctor', {
+  const result = await apiCall('/api/v1/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -128,10 +102,10 @@ export const registerAPI = async (userData) => {
   return result;
 };
 
-export const loginAPI = async (identity, password) => {
-  const result = await apiCall('/api/login/doctor', {
+export const loginAPI = async (contact, password, type = "doctor") => {
+  const result = await apiCall(`/api/v1/auth/login/${type}`, {
     method: 'POST',
-    body: JSON.stringify({ identity, password }),
+    body: JSON.stringify({ contact, password }),
   });
 
   if (result.success && result.data && result.data.token) {
@@ -139,14 +113,13 @@ export const loginAPI = async (identity, password) => {
     setJsonCookie('user', result.data.user, 7);
     setCookie('isAuthenticated', 'true', 7);
 
-    // ── Flush entire page cache so this user never sees a previous user's cached data ──
     window.dispatchEvent(new CustomEvent("authChanged"));
   }
 
   return result;
 };
 
-export const logoutAPI = async () => {
+export const logoutAPI = async (type = "doctor") => {
   const token = getCookie('user_token');
 
   if (!token) {
@@ -156,11 +129,12 @@ export const logoutAPI = async () => {
     };
   }
 
-  const result = await apiCall('/api/logout/doctor', {
+  const result = await apiCall(`/api/v1/auth/logout/${type}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
     },
+    body: JSON.stringify({ token }),
   });
 
   if (result.success) {
@@ -213,7 +187,6 @@ export const googleCallbackAPI = async (code) => {
     { method: 'GET' }
   );
 
-  // Backend returns: { success: true, data: { user: {...} }, token: "..." }
   const token = result?.token || result?.data?.token;
   const user = result?.data?.user || result?.data;
 
@@ -223,10 +196,8 @@ export const googleCallbackAPI = async (code) => {
     if (user) {
       setJsonCookie('user', user, 7);
     }
-    // Also mirror to localStorage for axios-based callers
     localStorage.setItem('user_token', token);
 
-    // ── Flush entire page cache so this user never sees a previous user's cached data ──
     window.dispatchEvent(new CustomEvent("authChanged"));
   }
 
@@ -244,7 +215,6 @@ export const googleLoginAPI = async (googleToken) => {
     setJsonCookie('user', result.data.user, 7);
     setCookie('isAuthenticated', 'true', 7);
 
-    // ── Flush entire page cache so this user never sees a previous user's cached data ──
     window.dispatchEvent(new CustomEvent("authChanged"));
   }
 
@@ -330,7 +300,7 @@ export const getPatientAnalysisAPI = async (patientId) => {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
-      console.error("Non-JSON response received:", text); // هيطبعلك الـ HTML في الكونسول عشان تشوفه
+      console.error("Non-JSON response received:", text); 
       return {
         success: false,
         message: 'Server returned an unexpected format (HTML). Check console.',
@@ -453,8 +423,8 @@ export const addPatientAPI = async (formData) => {
       localStorage.setItem('current_patient_id', patientId);
     }
 
-    console.log("raw API data:", data); // add this
-    console.log("extracted patientId:", patientId); // add this
+    console.log("raw API data:", data); 
+    console.log("extracted patientId:", patientId);
 
     return {
       success: true,
@@ -474,11 +444,11 @@ export const addPatientAPI = async (formData) => {
 };
 
 export const getPatientKeyInfoAPI = async (patientId, token) => {
-  // If no token provided, use apiCall which auto-reads token from cookies
+
   if (!token) {
     return await apiCall(`/api/patients/${patientId}/key-info`, { method: 'GET' });
   }
-  // Token explicitly provided (e.g. ProcessingReports polling)
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/key-info`, {
       method: 'GET',
@@ -490,7 +460,7 @@ export const getPatientKeyInfoAPI = async (patientId, token) => {
     });
     console.log("key-info status:", response.status);
     const data = await response.json();
-    return data; 
+    return data;
   } catch (err) {
     console.error("getPatientKeyInfoAPI catch:", err);
     return { success: false, message: "Network error" };
@@ -529,7 +499,7 @@ export const deleteKeyPointAPI = async (keyPointId) => {
 };
 
 /**
- * PATCH /api/patients/{patientId}/status
+ 
  * @param {number|string} patientId
  * @param {"stable"|"critical"|"under review"} status  — must match backend exactly
  */
@@ -540,35 +510,21 @@ export const updatePatientStatusAPI = async (patientId, status) => {
   });
 };
 
-/**
- * GET /api/patients/{patientId}/decision-support
- * Returns decision support data for a given patient.
- * Token is injected automatically by apiCall (reads user_token cookie).
- * 401 handling (cookie cleanup) is also done inside apiCall.
- */
+
 export const getDecisionSupportAPI = async (patientId) => {
   return await apiCall(`/api/patients/${patientId}/decision-support`, {
     method: 'GET',
   });
 };
 
-/**
- * GET /api/patients/{patientId}/activities
- * Returns activity history for a given patient.
- * Token is injected automatically by apiCall (reads user_token cookie).
- * 401 handling (cookie cleanup) is also done inside apiCall.
- */
+
 export const getPatientActivitiesAPI = async (patientId) => {
   return await apiCall(`/api/patients/${patientId}/activities`, {
     method: 'GET',
   });
 };
 
-/**
- * GET /api/patients/{patientId}/comparative-analysis
- * Returns comparative analysis data (test trends across visits) for a given patient.
- * Token is injected automatically by apiCall (reads user_token cookie).
- */
+
 export const getComparativeAnalysisAPI = async (patientId) => {
   return await apiCall(`/api/patients/${patientId}/comparative-analysis`, {
     method: 'GET',
@@ -576,12 +532,12 @@ export const getComparativeAnalysisAPI = async (patientId) => {
 };
 
 /**
- * POST /api/visits
- * Sent as application/x-www-form-urlencoded (not JSON) — backend requirement.
- * @param {object} params
+
+
+* @param {object} params
  * @param {number|string} params.patient_id
  * @param {boolean}       params.has_next_visit
- * @param {string}        [params.next_visit_date]  - "YYYY-MM-DD", required when has_next_visit=true
+ * @param {string}        [params.next_visit_date]  
  * @param {"save"|"next"} params.action
  */
 export const createVisitAPI = async ({ patient_id, has_next_visit, next_visit_date, action }) => {
@@ -640,9 +596,7 @@ export const createVisitAPI = async ({ patient_id, has_next_visit, next_visit_da
  * @param {"save"|"save_and_create_another"} payload.action
  * @param {"task"|"medication"} payload.type
  *
- * If type="task":   payload.title (required), payload.description, payload.notes, payload.Due_date
- * If type="medication": payload.name, payload.dosage, payload.frequency (all required), payload.duration, payload.notes
- */
+*/
 export const createVisitItem = async (visitId, payload) => {
   return await apiCall(`/api/visits/${visitId}/items`, {
     method: 'POST',
@@ -650,45 +604,26 @@ export const createVisitItem = async (visitId, payload) => {
   });
 };
 
-/**
- * GET /api/patients/{patientId}/items
- * Returns all tasks, medications, and next_visit_date for a patient.
- * Token is injected automatically by apiCall (reads user_token cookie).
- * Response shape: { success: true, data: { tasks: [], medications: [], next_visit_date: string|null } }
- */
+
 export const getPatientVisitItems = async (patientId) => {
   return await apiCall(`/api/patients/${patientId}/items`, { method: 'GET' });
 };
 
-/**
- * DELETE /api/patients/{patientId}/medications/{medicationId}
- * Deletes a single medication for a patient.
- * Success: { success: true, message: "Medication deleted successfully" }
- */
+
 export const deletePatientMedication = async (patientId, medicationId) => {
   return await apiCall(`/api/patients/${patientId}/medications/${medicationId}`, {
     method: 'DELETE',
   });
 };
 
-/**
- * DELETE /api/patients/{patientId}/tasks/{taskId}
- * Deletes a single task for a patient.
- * Success: { success: true, message: "Task deleted successfully" }
- */
+
 export const deletePatientTask = async (patientId, taskId) => {
   return await apiCall(`/api/patients/${patientId}/tasks/${taskId}`, {
     method: 'DELETE',
   });
 };
 
-/**
- * GET /api/visits?patient_id={patientId}
- * Fetches the patient's most recent / upcoming visit that has a next_visit_date.
- * Returns { next_visit_date, id, status } or null if unavailable.
- *
- * Gracefully handles 404/405 (no dedicated GET endpoint) by returning null.
- */
+
 export const getPatientNextVisitAPI = async (patientId) => {
   const token = getCookie('user_token');
 
@@ -702,7 +637,7 @@ export const getPatientNextVisitAPI = async (patientId) => {
       },
     });
 
-    // Endpoint might not support GET — fail silently
+
     if (!response.ok) {
       if (response.status === 401) {
         deleteCookie('user_token');
@@ -716,23 +651,23 @@ export const getPatientNextVisitAPI = async (patientId) => {
     const data = await response.json();
     console.log('[getPatientNextVisit] raw response', data);
 
-    // Shape 1: { success: true, data: [ { next_visit_date, id, status }, ... ] }
+
     if (data?.success && Array.isArray(data?.data)) {
-      // Find the most recent visit that has a next_visit_date
+
       const visits = data.data;
       const withDate = visits.filter((v) => v.next_visit_date);
       if (!withDate.length) return null;
-      // Sort descending by id (or created_at) and take the most recent
+
       withDate.sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
       return withDate[0];
     }
 
-    // Shape 2: { success: true, data: { next_visit_date, ... } }
+
     if (data?.success && data?.data?.next_visit_date) {
       return data.data;
     }
 
-    // Shape 3: flat object { next_visit_date, ... }
+
     if (data?.next_visit_date) {
       return data;
     }
@@ -743,21 +678,15 @@ export const getPatientNextVisitAPI = async (patientId) => {
     return null;
   }
 };
-/**
- * DELETE /api/patients/{patientId}
- * Deletes a single patient.
- * Success: { success: true, message: "Patient deleted successfully" }
- */
+
 export const deletePatientAPI = async (patientId) => {
   return await apiCall(`/api/patients/${patientId}`, {
     method: 'DELETE',
   });
 };
 
-/**
- * GET /api/patients/{patientId}
- * Fetches full patient data for the edit form (personal info, medical history, existing files).
- */
+
+
 export const getPatientForEditAPI = async (patientId) => {
   const token = getCookie('user_token');
   try {
@@ -793,8 +722,8 @@ export const getPatientForEditAPI = async (patientId) => {
 };
 
 /**
- * PUT /api/patients/{patientId}
- * Updates patient data. Sent as multipart/form-data so files can be included.
+
+* Updates patient data. Sent as multipart/form-data so files can be included.
  * @param {number|string} patientId
  * @param {FormData} formData  — built by EditPatient before submitting
  */
@@ -802,7 +731,7 @@ export const updatePatientAPI = async (patientId, formData) => {
   const token = getCookie('user_token');
   try {
     const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
-      method: 'POST', // Laravel tunnels PUT via _method spoofing; keep POST here
+      method: 'POST', 
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -902,7 +831,7 @@ export const getCurrentSubscriptionAPI = async () => {
   });
 };
 
-// ── Notifications ────────────────────────────────────────────────────────────
+
 
 /**
  * GET /api/v1/notifications
