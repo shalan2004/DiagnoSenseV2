@@ -19,18 +19,26 @@ const apiCall = async (endpoint, options = {}) => {
 
   const executeCall = async () => {
     try {
-      const token = getCookie('user_token');
+      // Prefer localStorage key (known correct token) over cookie
+      const token =
+        localStorage.getItem('c6b1f90cba489c85caa3c2eefebd0ccc') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('authToken') ||
+        localStorage.getItem('accessToken') ||
+        getCookie('user_token');
+
+      const isFormData = options.body instanceof FormData;
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           'Accept': 'application/json',
           'ngrok-skip-browser-warning': 'true',
 
           ...(token && { 'Authorization': `Bearer ${token}` }),
           ...options.headers,
         },
-        ...options,
       });
 
       const data = await response.json();
@@ -168,7 +176,7 @@ const FRONTEND_CALLBACK_URL = 'http://localhost:5173/auth/google/callback';
 
 export const getGoogleRedirectAPI = async () => {
   return await apiCall(
-    `/api/google/redirect?redirect_uri=${encodeURIComponent(FRONTEND_CALLBACK_URL)}`,
+    `/api/v1/auth/google/redirect?redirect_uri=${encodeURIComponent(FRONTEND_CALLBACK_URL)}`,
     { method: 'GET' }
   );
 };
@@ -329,21 +337,57 @@ export const getPatientAnalysisAPI = async (patientId) => {
   }
 };
 
-export const getPatientsByStatusAPI = async (status, page = 1) => {
-  const encodedType = encodeURIComponent(status);
-  const urlUsed = `/api/patients/status/${encodedType}?page=${page}`;
-  console.log("[status-filter] finalUrl:", urlUsed);
-  return await apiCall(urlUsed, {
-    method: 'GET',
-  });
+export const getPatientsAPI = async ({ status, search, page } = {}) => {
+  const params = new URLSearchParams();
+
+  if (status && status !== 'all') {
+    params.append('status', status);
+  }
+
+  if (search && search.trim()) {
+    params.append('search', search.trim());
+  }
+
+  // Only append page when explicitly navigating beyond page 1
+  if (page && page > 1) {
+    params.append('page', page);
+  }
+
+  // Do NOT send per_page — backend uses its own default
+
+  const queryString = params.toString();
+  const endpoint = queryString
+    ? `/api/v1/patients?${queryString}`
+    : `/api/v1/patients`;
+
+  console.log("[getPatientsAPI] requesting:", endpoint);
+  return await apiCall(endpoint, { method: 'GET' });
 };
 
-export const getPatientsAPI = async (page = 1, perPage = 9) => {
-  const urlUsed = `/api/patients?page=${page}&per_page=${perPage}`;
-  console.log("API URL", urlUsed);
-  return await apiCall(urlUsed, {
-    method: 'GET',
-  });
+export const extractPatientsPayload = (response) => {
+  const patients =
+    response?.data?.data ||
+    response?.data?.patients ||
+    response?.patients ||
+    (Array.isArray(response?.data) ? response.data : null) ||
+    (Array.isArray(response) ? response : null) ||
+    [];
+
+  const meta =
+    response?.data?.meta ||
+    response?.meta ||
+    null;
+
+  const links =
+    response?.data?.links ||
+    response?.links ||
+    null;
+
+  return {
+    patients: Array.isArray(patients) ? patients : [],
+    meta,
+    links
+  };
 };
 
 export const addPatientAPI = async (formData) => {
@@ -397,17 +441,6 @@ export const addPatientAPI = async (formData) => {
       message: 'Network error. Please check your connection.',
     };
   }
-};
-
-const SEARCH_QUERY_KEY = "search";
-
-export const searchPatientsAPI = async (page = 1, term = "") => {
-  const trimmed = term.trim();
-  const url = `/api/search?page=${page}&${SEARCH_QUERY_KEY}=${encodeURIComponent(trimmed)}`;
-  console.log("[search] requesting", { page, term: trimmed, url });
-  const res = await apiCall(url, { method: 'GET' });
-  console.log("[search] response", { meta: res?.meta || res?.data?.meta, len: (res?.data?.length ?? res?.data?.data?.length ?? "?") });
-  return res;
 };
 
 export const getPatientKeyInfoAPI = async (patientId, token) => {
@@ -892,49 +925,23 @@ export const sendChatbotMessageAPI = async (patientId, question) =>
 
 
 export const sendSupportAPI = async ({ category, urgency, message, name, attachment }) => {
-  const token = getCookie('user_token');
-
   const formData = new FormData();
   formData.append('category', category);
   formData.append('urgency', urgency);
   formData.append('message', message);
-  if (name && name.trim()) formData.append('name', name.trim());
-  if (attachment) formData.append('attachment', attachment);
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/support`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        deleteCookie('user_token');
-        deleteCookie('user');
-        deleteCookie('isAuthenticated');
-      }
-      return {
-        success: false,
-        message: data.message || 'Something went wrong',
-        errors: data.errors || null,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('[sendSupport] API Error:', error);
-    return {
-      success: false,
-      message: 'Network error. Please check your connection.',
-    };
+  
+  if (name && name.trim()) {
+    formData.append('name', name.trim());
   }
+  
+  if (attachment) {
+    formData.append('attachment', attachment);
+  }
+
+  return await apiCall('/api/v1/support', {
+    method: 'POST',
+    body: formData,
+  });
 };
 
 
