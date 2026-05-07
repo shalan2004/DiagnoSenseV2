@@ -1,16 +1,21 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "./SidebarContext";
+import { useTheme } from "./ThemeContext";
 import ConfirmModal from "./ConfirmModal";
-import logo from "../assets/Logo_Diagnoo.png";
-import stethoscope from "../assets/Stethoscope.png";
-import openIcon from "../assets/open.png";
-import closeIcon from "../assets/close.png";
+import { 
+  diagnoSenseLightLogo, 
+  diagnoSenseDarkLogo, 
+  stethoscopeLogo, 
+  openSidebarIcon, 
+  closeSidebarIcon 
+} from "../assets";
 import "../css/Sidebar.css";
 
 export default function Sidebar({ activePage }) {
   const navigate = useNavigate();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
+  const { isDark } = useTheme();
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
 
   const openDecisionSupport = () => setIsDecisionModalOpen(true);
@@ -20,6 +25,8 @@ export default function Sidebar({ activePage }) {
     navigate("/subscription", { state: { tab: "plans" } });
     closeDecisionSupport();
   };
+
+  const logo = isDark ? diagnoSenseDarkLogo : diagnoSenseLightLogo;
 
   return (
     <>
@@ -33,14 +40,14 @@ export default function Sidebar({ activePage }) {
 
             {/* Collapsed State: Stethoscope Icon + Hover Expand Button */}
             <div className="sidebar-logo-slot">
-              <img className="logo-collapsed" src={stethoscope} alt="DiagnoSense" />
+              <img className="logo-collapsed" src={stethoscopeLogo} alt="DiagnoSense" />
               <button
                 className="logo-expand-btn"
                 onClick={toggleSidebar}
                 aria-label="Expand sidebar"
                 title="Expand sidebar"
               >
-                <img src={openIcon} alt="Expand sidebar" />
+                <img src={openSidebarIcon} alt="Expand sidebar" />
               </button>
             </div>
           </div>
@@ -52,7 +59,7 @@ export default function Sidebar({ activePage }) {
             style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)' }}
           >
             <img
-              src={isSidebarCollapsed ? openIcon : closeIcon}
+              src={isSidebarCollapsed ? openSidebarIcon : closeSidebarIcon}
               alt={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
               className="sidebar-toggle-icon"
             />

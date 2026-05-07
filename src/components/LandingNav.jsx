@@ -1,19 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import dlogo from "../assets/Logo_Diagnoo.png";
+import { useTheme } from "./ThemeContext";
+import { diagnoSenseLightLogo, diagnoSenseDarkLogo } from "../assets";
 import "../css/Diagnosense.css";
 
 export default function LandingNav() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+
+  const logo = isDark ? diagnoSenseDarkLogo : diagnoSenseLightLogo;
 
   return (
     <>
       <nav>
         {/* Logo */}
         <div className="logo">
-          <img src={dlogo} alt="DiagnoSense" />
+          <img src={logo} alt="DiagnoSense" />
         </div>
 
         {/* Desktop links */}
@@ -60,7 +64,7 @@ export default function LandingNav() {
         </button>
 
         <div className="sidebar-logo">
-          <img src={dlogo} alt="DiagnoSense" style={{ width: "120px", paddingLeft: "0.5rem" }} />
+          <img src={logo} alt="DiagnoSense" style={{ width: "120px", paddingLeft: "0.5rem" }} />
         </div>
 
         <ul className="sidebar-links">

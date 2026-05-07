@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/Logo_Diagnoo.png";
-import stethoscope from "../assets/Stethoscope.png";
-import closeIcon from "../assets/close.png";
-import openIcon from "../assets/open.png";
 import { useSidebar } from "../components/SidebarContext";
 import { useSubscription } from "../components/SubscriptionContext";
 import Sidebar from "./Sidebar";

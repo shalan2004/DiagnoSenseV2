@@ -1,7 +1,6 @@
 import "../css/Diagnosense.css";
 import { useNavigate } from "react-router-dom";
 import LandingNav from "./LandingNav";
-import dlogo from "../assets/Logo_Diagnoo.png";
 
 export default function DiagnoSense() {
   const navigate = useNavigate();

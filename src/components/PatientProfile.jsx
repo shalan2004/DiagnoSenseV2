@@ -27,10 +27,6 @@ import EvidencePanel from "../components/EvidencePanel.jsx";
 import { useTranscription } from "../hooks/useTranscription";
 import { getDirection, getTextAlign } from "../utils/textUtils";
 
-import logo from "../assets/Logo_Diagnoo.png";
-import stethoscope from "../assets/Stethoscope.png";
-import closeIcon from "../assets/close.png";
-import openIcon from "../assets/open.png";
 import diagnobotImg from "../assets/DiagnoBot.png";
 import { useSidebar } from "./SidebarContext";
 import { useSubscription } from "./SubscriptionContext";

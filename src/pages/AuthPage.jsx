@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTheme } from "../components/ThemeContext";
+import { diagnoSenseLightLogo, diagnoSenseDarkLogo } from "../assets";
 import OTPVerification from "../components/OTPVerification.jsx";
 import Login from "../components/Login.jsx";
 import Register from "../components/Register.jsx";
 import ForgetPassword from "../components/ForgetPassword.jsx";
 import ResetPassword from "../components/ResetPassword.jsx";
-import logo from "../assets/Logo_Diagnoo.png";
 import "../css/auth.css";
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState("login");
+
+  const logo = isDark ? diagnoSenseDarkLogo : diagnoSenseLightLogo;
   const [currentView, setCurrentView] = useState("auth");
   const [userIdentity, setUserIdentity] = useState("");
   const [currentOTP, setCurrentOTP] = useState("");
