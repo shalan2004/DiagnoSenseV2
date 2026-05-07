@@ -6,10 +6,10 @@ import { setCookie, setJsonCookie } from "./cookieUtils";
 const Register = ({ onRegisterSuccess }) => {
   // const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [emailValue, setEmailValue] = useState("");
-  const [phoneValue, setPhoneValue] = useState("");
+  const [contactValue, setContactValue] = useState("");
+  const [specializationValue, setSpecializationValue] = useState("");
   const [error, setError] = useState("");
-  const [emailErrors, setEmailErrors] = useState([]);
+  const [contactErrors, setContactErrors] = useState([]);
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [passwordValue, setPasswordValue] = useState("");
 
@@ -31,32 +31,35 @@ const Register = ({ onRegisterSuccess }) => {
     e.preventDefault();
     const firstName = e.target.firstName.value;
     const lastName = e.target.lastName.value;
-    const email = emailValue;
-    const phone = phoneValue;
+    const contact = contactValue.trim();
     const password = e.target.password.value;
     const confirmPassword = e.target.password_confirmation.value;
+    const specialization = specializationValue.trim();
 
-    if (!email && !phone) {
-      setError("Please provide either an email address or a phone number.");
+    if (!contact) {
+      setError("Please provide an email address or phone number.");
       return;
     }
+
     setIsLoading(true);
     setError("");
-    setEmailErrors([]);
+    setContactErrors([]);
     setPasswordErrors([]);
 
     const fullName = `${firstName} ${lastName}`.trim();
 
     const result = await registerAPI({
       name: fullName,
-      email,
-      phone,
+      contact,
       password,
       password_confirmation: confirmPassword,
+      specialization,
     });
+    console.log("Register errors:", result.errors);
+console.log("Register message:", result.message);
 
     if (result.success) {
-      const identityUsed = email ? email : phone;
+      const identityUsed = contact;
       console.log(result.data);
       setCookie("user_token", result.data.token, 7);
       setJsonCookie("user", result.data.user, 7);
@@ -70,8 +73,8 @@ const Register = ({ onRegisterSuccess }) => {
       // navigate("/dashboard");
     } else {
       if (result.errors) {
-        if (result.errors.email) {
-          setEmailErrors(result.errors.email);
+        if (result.errors.contact) {
+          setContactErrors(result.errors.contact);
         }
 
         if (result.errors.password) {
@@ -79,7 +82,7 @@ const Register = ({ onRegisterSuccess }) => {
         }
 
         const otherErrors = Object.keys(result.errors).filter(
-          (key) => key !== "email" && key !== "password",
+          (key) => key !== "contact" && key !== "password",
         );
         if (otherErrors.length > 0) {
           setError(result.errors[otherErrors[0]][0]);
@@ -121,23 +124,23 @@ const Register = ({ onRegisterSuccess }) => {
 
         <div className="form-group">
           <input
-            type="email"
-            placeholder="Email address"
-            name="email"
-            value={emailValue}
-            onChange={(e) => setEmailValue(e.target.value)}
-            disabled={phoneValue.length > 0}
-            className={emailErrors.length > 0 ? "error" : ""}
+            type="text"
+            placeholder="Email address or Phone Number"
+            name="contact"
+            value={contactValue}
+            onChange={(e) => setContactValue(e.target.value)}
+            className={contactErrors.length > 0 ? "error" : ""}
+            required
           />
-          {emailErrors.length > 0 && (
+          {contactErrors.length > 0 && (
             <div className="field-errors">
-              {emailErrors.map((error, index) => (
+              {contactErrors.map((err, index) => (
                 <div
                   key={index}
                   className="error-message"
                   style={{ marginTop: "5px", marginBottom: "0" }}
                 >
-                  {error}
+                  {err}
                 </div>
               ))}
             </div>
@@ -146,13 +149,12 @@ const Register = ({ onRegisterSuccess }) => {
 
         <div className="form-group">
           <input
-            type="tel"
-            placeholder="Phone Number (Optional if email is provided)"
-            name="phone"
-            value={phoneValue}
-            onChange={(e) => setPhoneValue(e.target.value)}
-            disabled={emailValue.length > 0}
-            className={error.includes("phone") ? "error" : ""}
+            type="text"
+            placeholder="Specialization"
+            name="specialization"
+            value={specializationValue}
+            onChange={(e) => setSpecializationValue(e.target.value)}
+            required
           />
         </div>
         <div className="form-group" style={{ position: "relative" }}>

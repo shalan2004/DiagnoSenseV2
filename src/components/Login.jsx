@@ -27,13 +27,13 @@ const Login = ({ onForgotPassword }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const identity = e.target.identity.value;
-    const password = e.target.password.value;
+    const contact = e.target.identity.value;
+const password = e.target.password.value;
 
-    setIsLoading(true);
-    setError("");
+setIsLoading(true);
+setError("");
 
-    const result = await loginAPI(identity, password);
+const result = await loginAPI(contact, password);
 
     if (result.success) {
       console.log(result.data);
