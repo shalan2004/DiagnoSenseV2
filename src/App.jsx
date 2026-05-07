@@ -26,7 +26,9 @@ import { ThemeProvider } from "./components/ThemeContext";
 import { PageCacheProvider } from "./components/PageCacheContext";
 
 const ProtectedRoute = ({ children }) => {
-  const token = getCookie("user_token");
+  const token =
+    localStorage.getItem("c6b1f90cba489c85caa3c2eefebd0ccc") ||
+    getCookie("user_token");
   return token ? children : <Navigate to="/login" />;
 };
 

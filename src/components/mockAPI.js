@@ -905,47 +905,47 @@ export const getCurrentSubscriptionAPI = async () => {
 // ── Notifications ────────────────────────────────────────────────────────────
 
 /**
- * GET /api/notifications
+ * GET /api/v1/notifications
  * Fetches paginated notifications (cursor-based).
  * @param {string|null} cursor — the next-page cursor returned by the API
  */
 export const getNotificationsAPI = async (cursor) => {
   const url = cursor
-    ? `/api/notifications?cursor=${encodeURIComponent(cursor)}`
-    : '/api/notifications';
+    ? `/api/v1/notifications?cursor=${encodeURIComponent(cursor)}`
+    : '/api/v1/notifications';
   return await apiCall(url, { method: 'GET' });
 };
 
 /**
- * GET /api/notifications/unread-count
+ * GET /api/v1/notifications/unread-count
  * Returns the number of unread notifications.
  */
 export const getUnreadNotificationsCountAPI = async () => {
-  return await apiCall('/api/notifications/unread-count', { method: 'GET' });
+  return await apiCall('/api/v1/notifications/unread-count', { method: 'GET' });
 };
 
 /**
- * PATCH /api/notifications/{id}/read
+ * PATCH /api/v1/notifications/{id}/read
  * Marks a single notification as read.
  */
 export const markNotificationAsReadAPI = async (id) => {
-  return await apiCall(`/api/notifications/${id}/read`, { method: 'PATCH' });
+  return await apiCall(`/api/v1/notifications/${id}/read`, { method: 'PATCH' });
 };
 
 /**
- * POST /api/notifications/mark-all-read
+ * POST /api/v1/notifications/mark-all-read
  * Marks all notifications as read.
  */
 export const markAllNotificationsAsReadAPI = async () => {
-  return await apiCall('/api/notifications/mark-all-read', { method: 'POST' });
+  return await apiCall('/api/v1/notifications/mark-all-read', { method: 'POST' });
 };
 
 /**
- * DELETE /api/notifications/clear-all
+ * DELETE /api/v1/notifications/clear-all
  * Clears all notifications.
  */
 export const clearAllNotificationsAPI = async () => {
-  return await apiCall('/api/notifications/clear-all', { method: 'DELETE' });
+  return await apiCall('/api/v1/notifications/clear-all', { method: 'DELETE' });
 };
 
 
