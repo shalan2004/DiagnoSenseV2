@@ -20,16 +20,32 @@ const GoogleCallback = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    // 1. Try to get token from URL hash (New Backend Behavior)
+    const hash = window.location.hash || "";
+    const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+    let token =
+      hashParams.get("token") ||
+      hashParams.get("access_token") ||
+      hashParams.get("auth_token");
+
+    // 2. Fallback to search params (Backward Compatibility)
+    if (!token) {
+      token =
+        searchParams.get("token") ||
+        searchParams.get("access_token") ||
+        searchParams.get("auth_token");
+    }
 
     if (!token) {
-      // No token in URL — send back to login.
+      // No token found — log details and send back to login.
+      console.error("Google callback token missing. hash:", window.location.hash, "search:", window.location.search);
       setError("Sign-in failed: no token received. Redirecting to login…");
       setTimeout(() => navigate("/login", { replace: true }), 2000);
       return;
     }
 
     // Store token identically to normal login (setCookie "user_token", 7 days)
+    // "7" translates to sessionStorage in cookieUtils.js since it's not the boolean `true`
     setCookie("user_token", token, 7);
     setCookie("isAuthenticated", "true", 7);
 

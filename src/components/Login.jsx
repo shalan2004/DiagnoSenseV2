@@ -51,17 +51,37 @@ const Login = ({ onForgotPassword }) => {
   };
 
   const handleGoogleLogin = async () => {
+    if (googleLoading) return;
+
     setGoogleLoading(true);
     setError("");
-    const result = await getGoogleRedirectAPI();
-    if (result.url) {
-      window.location.href = result.url;
-    } else {
-      setError(
-        result.message || "Failed to load Google login. Please try again.",
-      );
+    try {
+      const response = await getGoogleRedirectAPI();
+
+      // Extract URL using defensive logic as per backend response shape
+      const googleRedirectUrl =
+        response?.data?.url ||
+        response?.url ||
+        response?.redirect_url ||
+        response?.redirectUrl ||
+        response?.data?.redirect_url ||
+        response?.data?.redirectUrl ||
+        (typeof response === "string" ? response : null);
+
+      if (googleRedirectUrl && typeof googleRedirectUrl === "string" && googleRedirectUrl.startsWith("http")) {
+        window.location.assign(googleRedirectUrl);
+        return;
+      }
+
+      // Only reach here if URL is missing or invalid
+      console.error("Google redirect URL missing from response:", response);
+      setError("Google redirect URL was not returned by the server.");
+    } catch (err) {
+      console.error("Google login redirect failed:", err);
+      setError("Failed to start Google login. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
-    setGoogleLoading(false);
   };
 
   return (
