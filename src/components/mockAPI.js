@@ -854,19 +854,22 @@ export const getUnreadNotificationsCountAPI = async () => {
 };
 
 /**
- * PATCH /api/v1/notifications/{id}/read
+ * PATCH /api/v1/notifications/notification/read
  * Marks a single notification as read.
  */
 export const markNotificationAsReadAPI = async (id) => {
-  return await apiCall(`/api/v1/notifications/${id}/read`, { method: 'PATCH' });
+  return await apiCall('/api/v1/notifications/notification/read', {
+    method: 'PATCH',
+    body: JSON.stringify({ notification_id: id }),
+  });
 };
 
 /**
- * POST /api/v1/notifications/mark-all-read
+ * PATCH /api/v1/notifications/read-all
  * Marks all notifications as read.
  */
 export const markAllNotificationsAsReadAPI = async () => {
-  return await apiCall('/api/v1/notifications/mark-all-read', { method: 'POST' });
+  return await apiCall('/api/v1/notifications/read-all', { method: 'PATCH' });
 };
 
 /**
