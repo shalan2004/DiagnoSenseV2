@@ -56,7 +56,7 @@ function Support() {
   const [formName, setFormName] = useState(user?.name ?? "");
 
   const [category, setCategory] = useState(savedDraft?.category ?? "");
-  const [urgency, setUrgency] = useState(savedDraft?.urgency ?? "Medium");
+  const [urgency, setUrgency] = useState(savedDraft?.urgency?.toLowerCase() ?? "medium");
   const [message, setMessage] = useState(savedDraft?.message ?? "");
   const [attachment, setAttachment] = useState(null);
   const [attachmentName, setAttachmentName] = useState("");
@@ -134,6 +134,10 @@ function Support() {
       setFormError("Please select a category.");
       return;
     }
+    if (!urgency) {
+      setFormError("Please select urgency level.");
+      return;
+    }
     if (!message.trim()) {
       setFormError("Please enter a message.");
       return;
@@ -143,8 +147,8 @@ function Support() {
 
     const result = await sendSupportAPI({
       name: formName,
-      category,
-      urgency,
+      category: category.toLowerCase(),
+      urgency: urgency.toLowerCase(),
       message,
       attachment,
     });
@@ -648,7 +652,7 @@ function Support() {
                       localStorage.removeItem(SUPPORT_DRAFT_KEY);
                       setFormName(user?.name ?? "");
                       setCategory("");
-                      setUrgency("Medium");
+                      setUrgency("medium");
                       setMessage("");
                       setAttachment(null);
                       setAttachmentName("");
