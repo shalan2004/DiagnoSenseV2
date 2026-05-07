@@ -511,7 +511,9 @@ body {
     box-shadow: 0 4px 12px rgba(42, 102, 255, 0.3);
 }
 
-/* Content Layer */
+/* Content Layer — margin-left and collapsed states are managed by App.css.
+   This block only adds PatientProfile-specific overrides without conflicting
+   with the global sidebar/content-layer dimensions. */
 .content-layer {
     position: relative;
     z-index: 1;
@@ -526,12 +528,16 @@ body {
 }
 
 .patient-profile-page {
+    /* overflow-x: clip prevents horizontal overflow WITHOUT creating a new scroll
+       container (unlike overflow-x: hidden which implicitly sets overflow-y: auto
+       and breaks position: sticky on child elements). */
     width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
     position: relative;
 }
 
 .patient-header {
+    /* Base patient header — used as fallback. pp-header overrides take priority. */
     position: relative;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
@@ -542,18 +548,30 @@ body {
     justify-content: start;
 }
 
+/* ── Patient Profile sticky header ──────────────────────────────────────
+   The header lives inside .content-layer which already shifts its
+   left edge via margin-left (managed by App.css globals + collapsed state).
+   width: 100% + box-sizing: border-box fills exactly the available content
+   width — from the sidebar's right edge to the right edge of the viewport.
+   Do NOT use position: fixed or width: 100vw here: those would ignore the
+   margin-left shift and create overlap / scrollbar gaps.
+────────────────────────────────────────────────────────────────────────── */
 .patient-profile-page .pp-header {
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid #E6EAF2;
     padding: 16px 32px !important;
+    /* Fill the content-layer width exactly — no left/right gaps */
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
-    z-index: 10;
-    margin-top: 0;
+    /* Stick just below the top navbar (70px) */
     position: sticky;
     top: 70px;
     z-index: 10;
+    margin-top: 0;
+    /* Prevent the header itself from creating a horizontal scrollbar */
+    overflow: visible;
 }
 
 
@@ -564,17 +582,23 @@ body {
     align-items: center;
     gap: 24px;
     width: 100%;
-    flex-wrap: wrap;
+    /* wrap only on small viewports (handled in media queries below) */
+    flex-wrap: nowrap;
     row-gap: 12px;
     box-sizing: border-box;
+    /* Prevent identity row from overflowing its header */
+    min-width: 0;
+    overflow: visible;
 }
 
 .patient-main-info {
     display: flex;
     align-items: start;
     gap: 16px;
+    /* Takes remaining space, shrinks gracefully, never overflows */
     flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
 }
 
 .patient-details {
@@ -609,12 +633,14 @@ body {
 
 @media (max-width: 768px) {
     .patient-profile-page .pp-header {
-        margin-top: -5px;
+        /* No negative margin hacks — sticky positioning handles placement */
+        padding: 12px 20px !important;
     }
 
     .patient-identity {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-wrap: wrap;
+        flex-direction: row;
+        align-items: center;
         gap: 12px;
     }
 
@@ -633,16 +659,16 @@ body {
     }
 
     .header-actions {
-        margin-left: 0;
-        width: 100%;
-        justify-content: flex-start;
+        margin-left: auto;
+        width: auto;
+        justify-content: flex-end;
+        flex-shrink: 0;
     }
 }
 
 @media (max-width: 480px) {
     .patient-profile-page .pp-header {
-        /* padding: 12px 16px !important; */
-        margin-top: -15px;
+        padding: 10px 16px !important;
     }
 
     .patient-avatar {
@@ -673,6 +699,7 @@ body {
         margin-left: 0;
         width: 100%;
         justify-content: flex-start;
+        padding-left: 0;
     }
 
     .patient-details h1 {
@@ -688,10 +715,14 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    /* Never shrink — the Edit File button must always be fully visible */
     flex-shrink: 0;
     margin-left: auto;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
+    /* Ensure button is never clipped by parent overflow */
+    overflow: visible;
+    padding-left: 8px;
 }
 
 .header-actions .btn {
@@ -2614,26 +2645,14 @@ button.pp-note-delete-btn:hover {
     background: #E6EAF2;
 }
 
-/* Responsive */
+/* Responsive — @media max-width: 1200px
+   NOTE: .sidebar width, .content-layer margin-left, and .top-navbar left are
+   intentionally NOT redefined here. Those are authoritative in App.css (body .sidebar,
+   body .content-layer, etc.) to prevent conflicting values across pages.
+   PatientProfile-specific responsive adjustments only below. */
 @media (max-width: 1200px) {
-    .sidebar {
-        width: 220px;
-    }
-
-    .content-layer {
-        margin-left: 220px;
-    }
-
-    .content-layer.collapsed {
-        margin-left: 72px;
-    }
-
-    .top-navbar {
-        left: 220px;
-    }
-
-    .top-navbar.collapsed {
-        left: 72px;
+    .patient-profile-page .pp-header {
+        padding: 14px 24px !important;
     }
 }
 
@@ -4349,6 +4368,9 @@ button.pp-note-delete-btn:hover {
     box-shadow: 0 4px 12px rgba(42, 102, 255, 0.25);
     transition: all 0.3s ease;
     text-decoration: none;
+    /* Never allow the button to shrink or wrap — it must always be fully visible */
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .pp-edit-file-btn:hover {

@@ -1454,6 +1454,152 @@ const PatientProfile = () => {
     }
   };
 
+  // ── Patient Header Viewport Alignment Fix ──
+  useLayoutEffect(() => {
+    const sidebar = document.querySelector("aside.sidebar");
+    const contentLayer = document.querySelector(".content-layer");
+    const patientPage =
+      document.querySelector(".patient-profile-page") ||
+      document.querySelector(".pp-scope.patient-profile-page");
+
+    const header =
+      document.querySelector("header.patient-header.pp-header") ||
+      document.querySelector(".patient-header.pp-header") ||
+      document.querySelector(".pp-header") ||
+      document.querySelector(".patient-header");
+
+    const editButton =
+      document.querySelector(".pp-edit-file-btn") ||
+      Array.from(document.querySelectorAll("button")).find((btn) =>
+        (btn.textContent || "").toLowerCase().includes("edit")
+      );
+
+    if (!sidebar || !contentLayer || !patientPage || !header) {
+      return;
+    }
+
+    const parents = [contentLayer, patientPage, header.parentElement].filter(Boolean);
+
+    const original = {
+      header: {
+        marginLeft: header.style.marginLeft,
+        width: header.style.width,
+        minWidth: header.style.minWidth,
+        maxWidth: header.style.maxWidth,
+        boxSizing: header.style.boxSizing,
+        transition: header.style.transition,
+        overflow: header.style.overflow,
+        zIndex: header.style.zIndex,
+        position: header.style.position,
+        top: header.style.top,
+        paddingRight: header.style.paddingRight,
+      },
+      edit: editButton
+        ? {
+          whiteSpace: editButton.style.whiteSpace,
+          flexShrink: editButton.style.flexShrink,
+        }
+        : null,
+      parents: parents.map((el) => ({
+        el,
+        overflow: el.style.overflow,
+        overflowX: el.style.overflowX,
+        overflowY: el.style.overflowY,
+        contain: el.style.contain,
+        clipPath: el.style.clipPath,
+      })),
+    };
+
+    let rafId = null;
+
+    const apply = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+
+      rafId = requestAnimationFrame(() => {
+        const viewportRight = window.innerWidth;
+        const sidebarRect = sidebar.getBoundingClientRect();
+        const contentRect = contentLayer.getBoundingClientRect();
+
+        const targetLeft = sidebarRect.right;
+        const targetWidth = viewportRight - targetLeft;
+        const leftCorrection = contentRect.left - targetLeft;
+
+        parents.forEach((el) => {
+          el.style.overflow = "visible";
+          el.style.overflowX = "visible";
+          el.style.overflowY = "visible";
+          el.style.contain = "none";
+          el.style.clipPath = "none";
+        });
+
+        header.style.position = "sticky";
+        header.style.top = "70px";
+        header.style.boxSizing = "border-box";
+        header.style.transition = "none";
+        header.style.overflow = "visible";
+        header.style.zIndex = "100";
+        header.style.marginLeft = `${-leftCorrection}px`;
+        header.style.width = `${targetWidth}px`;
+        header.style.minWidth = `${targetWidth}px`;
+        header.style.maxWidth = `${targetWidth}px`;
+        header.style.paddingRight = "32px";
+
+        if (editButton) {
+          editButton.style.whiteSpace = "nowrap";
+          editButton.style.flexShrink = "0";
+        }
+      });
+    };
+
+    const mutationObserver = new MutationObserver(apply);
+    [sidebar, contentLayer, patientPage].forEach((el) => {
+      mutationObserver.observe(el, {
+        attributes: true,
+        attributeFilter: ["class", "style"],
+      });
+    });
+
+    const resizeObserver = new ResizeObserver(apply);
+    resizeObserver.observe(sidebar);
+    resizeObserver.observe(contentLayer);
+    resizeObserver.observe(patientPage);
+
+    window.addEventListener("resize", apply);
+
+    const transitionEvents = ["transitionstart", "transitionrun", "transitionend"];
+    [sidebar, contentLayer, patientPage].forEach((el) => {
+      transitionEvents.forEach((ev) => el.addEventListener(ev, apply));
+    });
+
+    apply();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", apply);
+      [sidebar, contentLayer, patientPage].forEach((el) => {
+        transitionEvents.forEach((ev) => el.removeEventListener(ev, apply));
+      });
+      mutationObserver.disconnect();
+      resizeObserver.disconnect();
+
+      // Restore original styles
+      if (header) Object.assign(header.style, original.header);
+      if (editButton && original.edit) {
+        editButton.style.whiteSpace = original.edit.whiteSpace;
+        editButton.style.flexShrink = original.edit.flexShrink;
+      }
+      original.parents.forEach(({ el, overflow, overflowX, overflowY, contain, clipPath }) => {
+        if (el) {
+          el.style.overflow = overflow;
+          el.style.overflowX = overflowX;
+          el.style.overflowY = overflowY;
+          el.style.contain = contain;
+          el.style.clipPath = clipPath;
+        }
+      });
+    };
+  }, [isSidebarCollapsed]);
+
   return (
     <div className="pp-scope patient-profile-page">
       <div className="background-layer">
