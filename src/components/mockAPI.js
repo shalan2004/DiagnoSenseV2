@@ -17,9 +17,11 @@ const apiCall = async (endpoint, options = {}) => {
     return inflightRequests.get(key);
   }
 
+  // ↓ Extract skipAuthClear before passing options to fetch
+  const { skipAuthClear, ...fetchOptions } = options;
+
   const executeCall = async () => {
     try {
-      // Prefer localStorage key (known correct token) over cookie
       const token =
         localStorage.getItem('c6b1f90cba489c85caa3c2eefebd0ccc') ||
         localStorage.getItem('token') ||
@@ -27,24 +29,24 @@ const apiCall = async (endpoint, options = {}) => {
         localStorage.getItem('accessToken') ||
         getCookie('user_token');
 
-      const isFormData = options.body instanceof FormData;
+      const isFormData = fetchOptions.body instanceof FormData;
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
+        ...fetchOptions,
         headers: {
           ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           'Accept': 'application/json',
           'ngrok-skip-browser-warning': 'true',
-
           ...(token && { 'Authorization': `Bearer ${token}` }),
-          ...options.headers,
+          ...fetchOptions.headers,
         },
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 401) {
+        // ↓ THE FIX: only clear auth if skipAuthClear is NOT set
+        if (response.status === 401 && !skipAuthClear) {
           deleteCookie('user_token');
           deleteCookie('user');
           deleteCookie('isAuthenticated');
@@ -222,18 +224,22 @@ export const googleLoginAPI = async (googleToken) => {
 };
 
 export const verifyOTPAPI = async (identity, otp) => {
-  return await apiCall('/api/verify-email/doctor', {
+
+
+  return await apiCall('/api/v1/auth/verify-contact', {
     method: 'POST',
-    body: JSON.stringify({
-      identity: identity,
-      otp: otp
-    }),
+    body: JSON.stringify({ otp }),
+        skipAuthClear: true,
+
   });
 };
 
 export const resendOTPAPI = async () => {
-  return await apiCall('/api/resend-otp/doctor', {
+
+  return await apiCall('/api/v1/auth/resend-otp', {
     method: 'GET',
+        skipAuthClear: true,
+
   });
 };
 
