@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   verifyOTPAPI,
   verifyOTPForResetAPI,
   resendOTPAPI,
   forgetPasswordAPI,
 } from "./mockAPI";
-// import { setCookie } from "./cookieUtils.js";
+import { getCookie } from "./cookieUtils.js";
 
 const OTPVerification = ({
   identity,
   onVerifySuccess,
+  onSessionExpired,
   mode = "email_verification",
 }) => {
   const [otp, setOtp] = useState("");
@@ -18,6 +19,20 @@ const OTPVerification = ({
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+    useEffect(() => {
+    if (mode === "email_verification") {
+      const token = getCookie('user_token');
+      if (!token) {
+        console.error('[OTPVerification] No token on mount — redirecting');
+        if (onSessionExpired) {
+          onSessionExpired();
+        } else {
+          setError('Session expired. Please register again.');
+        }
+      }
+    }
+  }, [mode, onSessionExpired]);
 
   const content = {
     email_verification: {
@@ -58,15 +73,7 @@ const OTPVerification = ({
       }
     }
 
-    // if (result.success) {
-    //   // بنجيب التوكن من الـ result، ولو مش موجود (زي في الـ Mock) بنحط قيمة "dummy"
-    //   const tokenToStore = result.token || result.data?.token || "verified_user_token";
 
-    //   setCookie("token", tokenToStore, 7);
-    //   onVerifySuccess(otp);
-    // } else {
-    //   setError(result.message);
-    // }
     setIsLoading(false);
   };
 
@@ -78,10 +85,10 @@ const OTPVerification = ({
 
     let result;
     if (mode === "forget_password") {
-      // In forget password flow, resend using the identity (email/phone)
+
       result = await forgetPasswordAPI(identity);
     } else {
-      // In email verification flow, use the authenticated resend endpoint
+
       result = await resendOTPAPI();
     }
 
@@ -152,8 +159,7 @@ const OTPVerification = ({
           {isLoading ? "Verifying..." : buttonLabel}
         </button>
       </form>
-
-      <div
+ <div
         className="form-options"
         style={{ justifyContent: "center", marginTop: "15px" }}
       >
@@ -169,6 +175,8 @@ const OTPVerification = ({
           </a>
         </p>
       </div>
+
+
     </div>
   );
 };
