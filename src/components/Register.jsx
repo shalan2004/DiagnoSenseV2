@@ -58,11 +58,13 @@ const Register = ({ onRegisterSuccess }) => {
     console.log("Register errors:", result.errors);
 console.log("Register message:", result.message);
 
-    if (result.success) {
+    const token = result.token || result.data?.token;
+    const user = result.user || result.data?.user || result.data;
+
+    if (result.success && token) {
       const identityUsed = contact;
-      console.log(result.data);
-      setCookie("user_token", result.data.token, 7);
-      setJsonCookie("user", result.data.user, 7);
+      setCookie("user_token", token, 7);
+      if (user) setJsonCookie("user", user, 7);
       setCookie("isAuthenticated", "true", 7);
 
       localStorage.removeItem("doctor_name");

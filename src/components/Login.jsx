@@ -35,10 +35,12 @@ setError("");
 
 const result = await loginAPI(contact, password);
 
-    if (result.success) {
-      console.log(result.data);
-      setCookie("user_token", result.data.token, rememberMe);
-      setJsonCookie("user", result.data.user, rememberMe);
+    const token = result.token || result.data?.token;
+    const user = result.user || result.data?.user || result.data;
+
+    if (result.success && token) {
+      setCookie("user_token", token, rememberMe);
+      if (user) setJsonCookie("user", user, rememberMe);
       setCookie("isAuthenticated", "true", rememberMe);
 
       localStorage.removeItem('doctor_name');

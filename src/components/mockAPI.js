@@ -22,12 +22,7 @@ const apiCall = async (endpoint, options = {}) => {
 
   const executeCall = async () => {
     try {
-      const token =
-        localStorage.getItem('c6b1f90cba489c85caa3c2eefebd0ccc') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('authToken') ||
-        localStorage.getItem('accessToken') ||
-        getCookie('user_token');
+      const token = getCookie('user_token');
 
       const isFormData = fetchOptions.body instanceof FormData;
 
@@ -95,9 +90,12 @@ export const registerAPI = async (userData) => {
     body: JSON.stringify(payload),
   });
 
-  if (result.success && result.data && result.data.token) {
-    setCookie('user_token', result.data.token, 7);
-    setJsonCookie('user', result.data.user, 7);
+  const token = result?.token || result?.data?.token;
+  const user = result?.data?.user || result?.user || result?.data;
+
+  if (result.success && token) {
+    setCookie('user_token', token, 7);
+    if (user) setJsonCookie('user', user, 7);
     setCookie('isAuthenticated', 'true', 7);
   }
 
@@ -110,9 +108,12 @@ export const loginAPI = async (contact, password, type = "doctor") => {
     body: JSON.stringify({ contact, password }),
   });
 
-  if (result.success && result.data && result.data.token) {
-    setCookie('user_token', result.data.token, 7);
-    setJsonCookie('user', result.data.user, 7);
+  const token = result?.token || result?.data?.token;
+  const user = result?.data?.user || result?.user || result?.data;
+
+  if (result.success && token) {
+    setCookie('user_token', token, 7);
+    if (user) setJsonCookie('user', user, 7);
     setCookie('isAuthenticated', 'true', 7);
 
     window.dispatchEvent(new CustomEvent("authChanged"));
@@ -198,7 +199,7 @@ export const googleCallbackAPI = async (code) => {
     if (user) {
       setJsonCookie('user', user, 7);
     }
-    localStorage.setItem('user_token', token);
+    // window.dispatchEvent(new CustomEvent("authChanged"));
 
     window.dispatchEvent(new CustomEvent("authChanged"));
   }
