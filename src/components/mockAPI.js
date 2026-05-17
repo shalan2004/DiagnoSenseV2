@@ -475,7 +475,7 @@ export const getPatientKeyInfoAPI = async (patientId, token) => {
   }
 };
 export const getPatientOverviewAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/overview`, { method: 'GET' });
+  return await apiCall(`/api/v1/patients/${patientId}/overview`, { method: 'GET' });
 };
 
 export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority }) => {
