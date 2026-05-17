@@ -75,10 +75,9 @@ const AddPatient = () => {
 
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
-    age: "",
-    phone: "",
-    nationalId: "",
+    contact: "",
+    date_of_birth: "",
+    national_id: "",
     surgeryText: "",
     medications: "",
     allergies: "",
@@ -90,10 +89,9 @@ const AddPatient = () => {
   // Errors from other steps (step 2/3) or _general must NOT block Step 1.
   const step1ErrorFields = [
     "fullName",
-    "email",
-    "phone",
-    "age",
-    "nationalId",
+    "contact",
+    "date_of_birth",
+    "national_id",
     "gender",
     "is_smoker",
   ];
@@ -103,18 +101,18 @@ const AddPatient = () => {
 
   const isStep1Valid =
     formData.fullName.trim() &&
-    (formData.email.trim() || formData.phone.trim()) &&
-    formData.age &&
+    formData.contact.trim() &&
+    formData.date_of_birth &&
     selectedGender &&
-    formData.nationalId.trim() &&
+    formData.national_id.trim() &&
     !hasStep1Errors;
 
   console.log("[step1] nextDisabled", {
     currentStep,
     nextDisabled: !isStep1Valid,
     hasErrors: hasStep1Errors,
-    national_id: formData.nationalId,
-    err: fieldErrors.nationalId,
+    national_id: formData.national_id,
+    err: fieldErrors.national_id,
   });
 
   // Step 2 is valid unless surgeries=YES and the name field is empty
@@ -160,9 +158,9 @@ const AddPatient = () => {
 
   const extractFieldErrors = (result) => {
     const backendFieldMap = {
-      contact: formData.phone.trim() ? "phone" : "email",
+      contact: "contact",
       name: "fullName",
-      date_of_birth: "age",
+      date_of_birth: "date_of_birth",
       gender: "gender",
       is_smoker: "is_smoker",
       previous_surgeries_name: "surgeryText",
@@ -198,15 +196,14 @@ const AddPatient = () => {
       message.includes("contact has already been taken") ||
       (result.errors && result.errors.contact && result.errors.contact[0].includes("already been taken"))
     ) {
-      const contactField = formData.phone.trim() ? "phone" : "email";
-      newFieldErrors[contactField] = "Contact already exists.";
+      newFieldErrors.contact = "Contact already exists.";
     }
 
     if (
       message.includes("national_id") &&
       message.includes("Duplicate entry")
     ) {
-      newFieldErrors.nationalId = "National ID already exists.";
+      newFieldErrors.national_id = "National ID already exists.";
     }
 
     return newFieldErrors;
@@ -217,10 +214,9 @@ const AddPatient = () => {
   const navigateToErrorStep = (errors) => {
     const step1Fields = [
       "fullName",
-      "email",
-      "phone",
-      "age",
-      "nationalId",
+      "contact",
+      "date_of_birth",
+      "national_id",
       "gender",
       "is_smoker",
     ];
@@ -293,7 +289,7 @@ const AddPatient = () => {
     let newValue = value;
     let newErrors = { ...fieldErrors };
 
-    if (id === "phone" || id === "nationalId" || id === "age") {
+    if (id === "national_id") {
       newValue = value.replace(/\D/g, "");
     } else if (id === "fullName") {
       newValue = value.replace(/[0-9]/g, "");
@@ -301,20 +297,6 @@ const AddPatient = () => {
 
     if (newErrors[id]) {
       delete newErrors[id];
-    }
-
-    // Email/Phone mutual exclusivity: clear the other when one is typed
-    if (id === "email") {
-      delete newErrors.phone;
-      setFieldErrors(newErrors);
-      setFormData((prev) => ({ ...prev, email: newValue, phone: "" }));
-      return;
-    }
-    if (id === "phone") {
-      delete newErrors.email;
-      setFieldErrors(newErrors);
-      setFormData((prev) => ({ ...prev, phone: newValue, email: "" }));
-      return;
     }
 
     setFieldErrors(newErrors);
@@ -417,26 +399,31 @@ const AddPatient = () => {
       const apiFormData = new FormData();
 
       apiFormData.append("name", formData.fullName);
-      
-      const contactValue = formData.phone.trim() || formData.email.trim();
-      if (contactValue) {
-        apiFormData.append("contact", contactValue);
+
+      if (formData.contact.trim()) {
+        apiFormData.append("contact", formData.contact.trim());
       }
 
-      if (formData.age) {
-        const currentYear = new Date().getFullYear();
-        const birthYear = currentYear - parseInt(formData.age, 10);
-        apiFormData.append("date_of_birth", `${birthYear}-01-01`);
+      if (formData.date_of_birth) {
+        apiFormData.append("date_of_birth", formData.date_of_birth);
       }
 
       if (selectedGender) {
         apiFormData.append("gender", selectedGender);
       }
 
+      if (formData.national_id.trim()) {
+        apiFormData.append("national_id", formData.national_id.trim());
+      }
+
       if (isSmoker !== null) {
         apiFormData.append("is_smoker", isSmoker ? "1" : "0");
       }
-      
+
+      if (hasSurgeries !== null) {
+        apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
+      }
+
       if (hasSurgeries && formData.surgeryText) {
         apiFormData.append("previous_surgeries_name", formData.surgeryText);
       }
@@ -480,10 +467,10 @@ const AddPatient = () => {
             patient_id: result.patient_id,
             patientInfo: {
               fullName: formData.fullName,
-              age: formData.age,
+              date_of_birth: formData.date_of_birth,
               gender: selectedGender,
-              phone: formData.phone,
-              nationalId: formData.nationalId,
+              contact: formData.contact,
+              national_id: formData.national_id,
             },
             medicalHistory: {
               isSmoker,
@@ -710,7 +697,7 @@ const AddPatient = () => {
               </div>
 
               <div className="form-grid add-patient-step1">
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label className="form-label required">Full Name</label>
                   <input
                     type="text"
@@ -736,45 +723,16 @@ const AddPatient = () => {
                 </div>
 
                 <div className="form-group">
-                  <label
-                    className={`form-label ${!formData.phone.trim() ? "required" : ""}`}
-                  >
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className={`form-input${fieldErrors.email ? " target-error" : ""}`}
-                    id="email"
-                    placeholder="Enter patient's email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={!!formData.phone.trim()}
-                  />
-                  {fieldErrors.email && (
-                    <div
-                      style={{
-                        color: "#EF4444",
-                        fontSize: "12px",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {fieldErrors.email}
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label required">Age</label>
+                  <label className="form-label required">Contact</label>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    className={`form-input${fieldErrors.age ? " target-error" : ""}`}
-                    id="age"
-                    placeholder="Enter age"
-                    value={formData.age}
+                    className={`form-input${fieldErrors.contact ? " target-error" : ""}`}
+                    id="contact"
+                    placeholder="Enter patient's phone number or email"
+                    value={formData.contact}
                     onChange={handleInputChange}
                   />
-                  {fieldErrors.age && (
+                  {fieldErrors.contact && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -782,7 +740,7 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.age}
+                      {fieldErrors.contact}
                     </div>
                   )}
                 </div>
@@ -798,8 +756,8 @@ const AddPatient = () => {
                     >
                       {selectedGender
                         ? selectedGender.charAt(0).toUpperCase() +
-                          selectedGender.slice(1)
-                        : "Select gender"}
+                        selectedGender.slice(1)
+                        : "Select patient's gender"}
                       <svg className="arrow-icon" viewBox="0 0 24 24">
                         <path d="M6 9l6 6 6-6" />
                       </svg>
@@ -843,22 +801,16 @@ const AddPatient = () => {
                 </div>
 
                 <div className="form-group">
-                  <label
-                    className={`form-label ${!formData.email.trim() ? "required" : ""}`}
-                  >
-                    Phone Number
-                  </label>
+                  <label className="form-label required">Date of Birth</label>
                   <input
-                    type="tel"
-                    className={`form-input${fieldErrors.phone ? " target-error" : ""}`}
-                    id="phone"
-                    inputMode="numeric"
-                    placeholder="+20 XXX XXX XXXX"
-                    value={formData.phone}
+                    type="date"
+                    className={`form-input${fieldErrors.date_of_birth ? " target-error" : ""}`}
+                    id="date_of_birth"
+                    placeholder="Select patient's date of birth"
+                    value={formData.date_of_birth}
                     onChange={handleInputChange}
-                    disabled={!!formData.email.trim()}
                   />
-                  {fieldErrors.phone && (
+                  {fieldErrors.date_of_birth && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -866,7 +818,7 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.phone}
+                      {fieldErrors.date_of_birth}
                     </div>
                   )}
                 </div>
@@ -875,14 +827,14 @@ const AddPatient = () => {
                   <label className="form-label required">National ID</label>
                   <input
                     type="text"
-                    className={`form-input${fieldErrors.nationalId ? " target-error" : ""}`}
-                    id="nationalId"
+                    className={`form-input${fieldErrors.national_id ? " target-error" : ""}`}
+                    id="national_id"
                     inputMode="numeric"
-                    placeholder="Enter ID number"
-                    value={formData.nationalId}
+                    placeholder="Enter patient's national ID"
+                    value={formData.national_id}
                     onChange={handleInputChange}
                   />
-                  {fieldErrors.nationalId && (
+                  {fieldErrors.national_id && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -890,7 +842,7 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.nationalId}
+                      {fieldErrors.national_id}
                     </div>
                   )}
                 </div>
@@ -1318,24 +1270,24 @@ const AddPatient = () => {
               {(fieldErrors.lab ||
                 fieldErrors.radiology ||
                 fieldErrors.medical_history) && (
-                <div
-                  style={{
-                    color: "#EF4444",
-                    fontSize: "14px",
-                    marginBottom: "20px",
-                    textAlign: "center",
-                    fontWeight: "500",
-                    backgroundColor: "#FEF2F2",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px dashed #FCA5A5",
-                  }}
-                >
-                  {fieldErrors.lab ||
-                    fieldErrors.radiology ||
-                    fieldErrors.medical_history}
-                </div>
-              )}
+                  <div
+                    style={{
+                      color: "#EF4444",
+                      fontSize: "14px",
+                      marginBottom: "20px",
+                      textAlign: "center",
+                      fontWeight: "500",
+                      backgroundColor: "#FEF2F2",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      border: "1px dashed #FCA5A5",
+                    }}
+                  >
+                    {fieldErrors.lab ||
+                      fieldErrors.radiology ||
+                      fieldErrors.medical_history}
+                  </div>
+                )}
 
               <div className="wizard-actions">
                 <button
