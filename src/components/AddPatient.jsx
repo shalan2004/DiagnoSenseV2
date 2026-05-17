@@ -160,20 +160,17 @@ const AddPatient = () => {
 
   const extractFieldErrors = (result) => {
     const backendFieldMap = {
-      email: "email",
-      phone: "phone",
-      national_id: "nationalId",
+      contact: formData.phone.trim() ? "phone" : "email",
       name: "fullName",
-      age: "age",
+      date_of_birth: "age",
       gender: "gender",
       is_smoker: "is_smoker",
-      previous_surgeries: "previous_surgeries",
       previous_surgeries_name: "surgeryText",
       chronic_diseases: "chronic_diseases",
-      medications: "medications",
+      current_medications: "medications",
       allergies: "allergies",
       family_history: "familyHistory",
-      current_complaint: "ChiefComplaint",
+      current_complaints: "ChiefComplaint",
       lab: "lab",
       radiology: "radiology",
       medical_history: "medical_history",
@@ -196,17 +193,15 @@ const AddPatient = () => {
 
     const message = result.message || "";
     if (
-      message.includes("users_phone_unique") ||
-      (message.includes("Duplicate entry") && message.includes("phone"))
+      message.includes("users_contact_unique") ||
+      (message.includes("Duplicate entry") && message.includes("contact")) ||
+      message.includes("contact has already been taken") ||
+      (result.errors && result.errors.contact && result.errors.contact[0].includes("already been taken"))
     ) {
-      newFieldErrors.phone = "Phone number already exists.";
+      const contactField = formData.phone.trim() ? "phone" : "email";
+      newFieldErrors[contactField] = "Contact already exists.";
     }
-    if (
-      message.includes("users_email_unique") ||
-      (message.includes("Duplicate entry") && message.includes("email"))
-    ) {
-      newFieldErrors.email = "Email already exists.";
-    }
+
     if (
       message.includes("national_id") &&
       message.includes("Duplicate entry")
@@ -405,23 +400,45 @@ const AddPatient = () => {
     setIsProcessing(true);
     setFieldErrors({});
 
+    const totalFiles =
+      fileManager.lab.length +
+      fileManager.history.length +
+      fileManager.radiology.length;
+
+    if (totalFiles === 0) {
+      setFieldErrors({
+        lab: "Please upload at least one lab test result or radiology report or medical history report.",
+      });
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       const apiFormData = new FormData();
 
       apiFormData.append("name", formData.fullName);
-      if (formData.email.trim()) apiFormData.append("email", formData.email);
-      if (formData.phone.trim()) apiFormData.append("phone", formData.phone);
-      apiFormData.append("age", formData.age);
-      apiFormData.append("gender", selectedGender);
-      apiFormData.append("national_id", formData.nationalId);
+      
+      const contactValue = formData.phone.trim() || formData.email.trim();
+      if (contactValue) {
+        apiFormData.append("contact", contactValue);
+      }
 
-      apiFormData.append("is_smoker", isSmoker ? "1" : "0");
-      apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
-      if (hasSurgeries) {
-        apiFormData.append(
-          "previous_surgeries_name",
-          formData.surgeryText || "",
-        );
+      if (formData.age) {
+        const currentYear = new Date().getFullYear();
+        const birthYear = currentYear - parseInt(formData.age, 10);
+        apiFormData.append("date_of_birth", `${birthYear}-01-01`);
+      }
+
+      if (selectedGender) {
+        apiFormData.append("gender", selectedGender);
+      }
+
+      if (isSmoker !== null) {
+        apiFormData.append("is_smoker", isSmoker ? "1" : "0");
+      }
+      
+      if (hasSurgeries && formData.surgeryText) {
+        apiFormData.append("previous_surgeries_name", formData.surgeryText);
       }
 
       if (selectedChronicDiseases.length > 0) {
@@ -429,14 +446,19 @@ const AddPatient = () => {
           apiFormData.append("chronic_diseases[]", disease);
         });
       }
-      // else {
-      //   apiFormData.append("chronic_diseases[]", "");
-      // }
 
-      apiFormData.append("medications", formData.medications || "");
-      apiFormData.append("allergies", formData.allergies || "");
-      apiFormData.append("family_history", formData.familyHistory || "");
-      apiFormData.append("current_complaint", formData.ChiefComplaint || "");
+      if (formData.medications) {
+        apiFormData.append("current_medications", formData.medications);
+      }
+      if (formData.allergies) {
+        apiFormData.append("allergies", formData.allergies);
+      }
+      if (formData.familyHistory) {
+        apiFormData.append("family_history", formData.familyHistory);
+      }
+      if (formData.ChiefComplaint) {
+        apiFormData.append("current_complaints", formData.ChiefComplaint);
+      }
 
       fileManager.lab.forEach((entry) =>
         apiFormData.append("lab[]", entry.file),
@@ -488,7 +510,7 @@ const AddPatient = () => {
         refreshCredits(); // Update top bar credits
 
         const token = getCookie("user_token");
-        setPollingInfo({ patientId: result.data.data.patient_id, token });
+        setPollingInfo({ patientId: result.patient_id, token });
         setShowProcessingScreen(true);
       } else {
         // Log the raw 422 body so we can see every field the backend flagged
@@ -497,11 +519,28 @@ const AddPatient = () => {
           errors: result.errors,
         });
 
+        if (result.status === 401) {
+          setFieldErrors({
+            _general: "Session expired or unauthorized. Please log in again.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
         const newFieldErrors = extractFieldErrors(result);
 
         if (Object.keys(newFieldErrors).length > 0) {
           // Store ALL parsed errors at once — user sees every highlighted field
           // across steps without needing multiple re-submits
+          if (
+            result.message &&
+            result.message !== "Validation Errors" &&
+            result.message !== "The given data was invalid." &&
+            !result.message.includes("validation") &&
+            !result.message.includes("invalid")
+          ) {
+            newFieldErrors._general = result.message;
+          }
           setFieldErrors(newFieldErrors);
           navigateToErrorStep(newFieldErrors);
         } else {
@@ -790,6 +829,17 @@ const AddPatient = () => {
                       </div>
                     )}
                   </div>
+                  {fieldErrors.gender && (
+                    <div
+                      style={{
+                        color: "#EF4444",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {fieldErrors.gender}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

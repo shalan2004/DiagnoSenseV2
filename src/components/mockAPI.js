@@ -400,7 +400,7 @@ export const extractPatientsPayload = (response) => {
 export const addPatientAPI = async (formData) => {
   const token = getCookie('user_token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/patients`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/patients`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -421,11 +421,12 @@ export const addPatientAPI = async (formData) => {
       return {
         success: false,
         message: data.message || 'Something went wrong',
-        errors: data.errors || null,
+        errors: data.errors || data.data || null,
+        status: response.status,
       };
     }
 
-    const patientId = data?.data?.id ?? data?.patient_id ?? null;
+    const patientId = data?.data?.patient_id ?? data?.data?.id ?? data?.patient_id ?? null;
     if (patientId) {
       localStorage.setItem('current_patient_id', patientId);
     }
