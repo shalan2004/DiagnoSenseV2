@@ -451,28 +451,8 @@ export const addPatientAPI = async (formData) => {
   }
 };
 
-export const getPatientKeyInfoAPI = async (patientId, token) => {
-
-  if (!token) {
-    return await apiCall(`/api/patients/${patientId}/key-info`, { method: 'GET' });
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/key-info`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    });
-    console.log("key-info status:", response.status);
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    console.error("getPatientKeyInfoAPI catch:", err);
-    return { success: false, message: "Network error" };
-  }
+export const getPatientKeyInfoAPI = async (patientId) => {
+  return await apiCall(`/api/v1/patients/${patientId}/key-info`, { method: 'GET' });
 };
 export const getPatientOverviewAPI = async (patientId) => {
   return await apiCall(`/api/v1/patients/${patientId}/overview`, { method: 'GET' });

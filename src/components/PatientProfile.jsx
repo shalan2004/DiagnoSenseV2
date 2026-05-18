@@ -117,8 +117,14 @@ const PatientProfile = () => {
     pointIdx: -1,
   });
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [visitedTabs, setVisitedTabs] = useState({ overview: true });
+  // If Add Patient flow passes activeTab in navigation state, open that tab directly
+  const initialTab = location.state?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [visitedTabs, setVisitedTabs] = useState(
+    initialTab !== 'overview'
+      ? { overview: true, [initialTab]: true }
+      : { overview: true }
+  );
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef(null);
@@ -222,6 +228,10 @@ const PatientProfile = () => {
 
   // ── Key info fetched from backend (View Details path) ──
   const [keyInfo, setKeyInfo] = useState(null);
+  // OCR source files returned by the v1 key-info endpoint
+  const [keyInfoOcrFiles, setKeyInfoOcrFiles] = useState([]);
+  // Whether the backend is still processing documents
+  const [keyInfoStillProcessing, setKeyInfoStillProcessing] = useState(false);
 
   // keyInfo is the single source of truth for both flows.
   // In Add Patient flow it is seeded from navigation state then overwritten by the backend fetch.
@@ -421,16 +431,62 @@ const PatientProfile = () => {
     }
     const fetchKeyInfo = async () => {
       setIsLoadingAnalysis(true);
-      const res = await getPatientKeyInfoAPI(patientId);
-      if (res && res.success !== false) {
-        const payload = res?.data ?? res;
-        setKeyInfo(payload);
-        // Extract source PDF URL for the Evidence Panel
-        const sf = payload?.source_file ?? res?.source_file ?? null;
-        if (sf) setSourceFile(sf);
+      try {
+        const res = await getPatientKeyInfoAPI(patientId);
+
+        // ── 401 / unauthenticated ──
+        const is401 =
+          res?.message?.toLowerCase().includes('unauthenticated') ||
+          res?.message?.includes('401');
+        if (is401) {
+          console.error('[keyInfo] unauthenticated:', res.message);
+          setIsLoadingAnalysis(false);
+          return;
+        }
+
+        // ── Explicit failure or missing data ──
+        if (!res || res.success === false || !res.data) {
+          console.error('[keyInfo] fetch failed:', res?.message);
+          setIsLoadingAnalysis(false);
+          return;
+        }
+
+        const data = res.data;
+
+        // ── still_processing ──
+        const stillProcessing = data.still_processing === true;
+        setKeyInfoStillProcessing(stillProcessing);
+        if (stillProcessing) {
+          console.log('[keyInfo] still_processing=true — showing partial data if available');
+        }
+
+        // ── OCR source files (used by Evidence Panel) ──
+        const ocrFiles = Array.isArray(data.ocr_files) ? data.ocr_files : [];
+        setKeyInfoOcrFiles(ocrFiles);
+        if (ocrFiles.length > 0) setSourceFile(ocrFiles[0]);
+
+        // ── Normalize key_points → { high, medium, low } ──
+        // Map is_ai_generated → is_manual so existing UI renders without changes.
+        const normalizeAlerts = (arr) =>
+          Array.isArray(arr)
+            ? arr.map((kp) => ({
+                ...kp,
+                // Preserve is_ai_generated on the object; expose as is_manual for UI
+                is_manual: kp.is_ai_generated ?? kp.is_manual ?? '',
+              }))
+            : [];
+
+        const rawKeyPoints = data.key_points ?? {};
+        const normalized = {
+          high:   normalizeAlerts(rawKeyPoints.high),
+          medium: normalizeAlerts(rawKeyPoints.medium),
+          low:    normalizeAlerts(rawKeyPoints.low),
+        };
+
+        setKeyInfo(normalized);
         setKeyInfoLoadedFor(patientId);
-      } else {
-        console.error("[keyInfo] fetch failed:", res?.message);
+      } catch (err) {
+        console.error('[keyInfo] unexpected error:', err);
       }
       setIsLoadingAnalysis(false);
     };

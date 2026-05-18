@@ -9,7 +9,6 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import "../css/AddPatient.css";
 import LogoutConfirmation from "../components/ConfirmationModal.jsx";
-import { getCookie } from "./cookieUtils";
 import { useNotifications } from "./NotificationsContext";
 import { getDoctorInitials } from "./Dashboard";
 import { useTranscription } from "../hooks/useTranscription";
@@ -22,7 +21,6 @@ const AddPatient = () => {
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
   const [pollingInfo, setPollingInfo] = useState({
     patientId: null,
-    token: null,
   });
   const [selectedGender, setSelectedGender] = useState(null);
   const [isSmoker, setIsSmoker] = useState(null);
@@ -496,8 +494,7 @@ const AddPatient = () => {
 
         refreshCredits(); // Update top bar credits
 
-        const token = getCookie("user_token");
-        setPollingInfo({ patientId: result.patient_id, token });
+        setPollingInfo({ patientId: result.patient_id });
         setShowProcessingScreen(true);
       } else {
         // Log the raw 422 body so we can see every field the backend flagged
@@ -553,10 +550,12 @@ const AddPatient = () => {
     return (
       <ProcessingReports
         patientId={pollingInfo.patientId}
-        token={pollingInfo.token}
         onSuccess={(data) => {
           navigate(`/patient-profile/${pollingInfo.patientId}`, {
-            state: { keyInfoData: data, patientId: pollingInfo.patientId },
+            state: {
+              keyInfoData: data,
+              patientId: pollingInfo.patientId,
+            },
           });
         }}
         onFailure={(msg) => {
@@ -565,7 +564,7 @@ const AddPatient = () => {
           setFieldErrors({
             _general: msg || "AI analysis failed. Please try again.",
           });
-          setCurrentStep(1); // Ensure user goes back to the beginning on failure
+          setCurrentStep(3); // Return user to Upload Reports so they can retry
         }}
         onStop={() => {
           // User manually stopped — return them to the Upload Reports step
