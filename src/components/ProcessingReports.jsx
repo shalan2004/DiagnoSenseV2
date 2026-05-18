@@ -184,26 +184,40 @@ export default function ProcessingReports({
         return;
       }
 
+      // ── Request failed or returned success as false ──
+      if (!result || result.success === false) {
+        clearInterval(pollingRef.current);
+        clearInterval(messageIntervalRef.current);
+        const errMsg = result?.message || 'AI analysis request failed.';
+        if (onFailure) {
+          onFailure(errMsg);
+        } else {
+          navigate(-1, { state: { error: errMsg } });
+        }
+        return;
+      }
+
       // ── Check response data ──
       const data = result?.data;
       const keyPoints = data?.key_points;
       const stillProcessing = data?.still_processing;
       const msg = result?.message || '';
 
-      // Key points are ready when:
-      //   • message says "key points retrieved successfully" (with or without comparative still running)
-      //   • OR still_processing === false and key_points object exists
-      const hasKeyPoints =
+      // Check if we have useful, non-empty key points
+      const hasUsefulKeyPoints =
         keyPoints &&
         (
-          Array.isArray(keyPoints.high) ||
-          Array.isArray(keyPoints.medium) ||
-          Array.isArray(keyPoints.low)
+          (Array.isArray(keyPoints.high) && keyPoints.high.length > 0) ||
+          (Array.isArray(keyPoints.medium) && keyPoints.medium.length > 0) ||
+          (Array.isArray(keyPoints.low) && keyPoints.low.length > 0)
         );
 
+      // Key points are ready when:
+      //   • message says "key points retrieved successfully" AND we have useful key points
+      //   • OR still_processing === false and we have useful key points
       const keyPointsReady =
-        (isKeyPointsReady(msg) && hasKeyPoints) ||
-        (stillProcessing === false && hasKeyPoints);
+        (isKeyPointsReady(msg) && hasUsefulKeyPoints) ||
+        (stillProcessing === false && hasUsefulKeyPoints);
 
       if (keyPointsReady && !hasNavigated.current) {
         hasNavigated.current = true;
@@ -232,6 +246,38 @@ export default function ProcessingReports({
             });
           }
         }, 700);
+        return;
+      }
+
+      // ── Treat Key Info as failed if any of these are true:
+      //   • message contains "no key points found" or "no key points generated"
+      //   • still_processing is false (or not true) and there are no useful key points
+      //   • still_processing is false (or not true) and data/key_points is missing
+      const isNoKeyPointsMsg =
+        msg.toLowerCase().includes('no key points found') ||
+        msg.toLowerCase().includes('no key points generated');
+
+      const isAiAnalysisFailed =
+        isNoKeyPointsMsg ||
+        (stillProcessing !== true && !hasUsefulKeyPoints) ||
+        (stillProcessing !== true && (!data || !keyPoints));
+
+      if (isAiAnalysisFailed) {
+        clearInterval(pollingRef.current);
+        clearInterval(messageIntervalRef.current);
+
+        let failMsg = 'Patient was created, but AI analysis could not generate key information. Please make sure the AI server is running and try again.';
+        if (msg && msg !== 'Something went wrong' && !msg.toLowerCase().includes('failed')) {
+          failMsg = msg;
+        } else if (msg) {
+          failMsg = `Patient was created, but AI analysis failed: ${msg}. Please make sure the AI server is running and try again.`;
+        }
+
+        if (onFailure) {
+          onFailure(failMsg);
+        } else {
+          navigate(-1, { state: { error: failMsg } });
+        }
         return;
       }
 

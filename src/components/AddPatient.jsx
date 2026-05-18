@@ -440,6 +440,14 @@ const AddPatient = () => {
   };
 
   const handleProcess = async () => {
+    // If patient already created successfully but AI analysis failed, we can retry the AI analysis directly
+    if (!isEditMode && pollingInfo.patientId) {
+      setIsProcessing(true);
+      setFieldErrors({});
+      setShowProcessingScreen(true);
+      return;
+    }
+
     setIsProcessing(true);
     setFieldErrors({});
 
