@@ -1032,22 +1032,66 @@ const PatientProfile = () => {
     }
   };
 
-  // ── Fetch Comparative Analysis from backend ──
   const fetchComparativeAnalysis = async () => {
     if (!patientId) return;
+    if (comparativeLoading) return;
+    
     setComparativeLoading(true);
     setComparativeError(null);
+
+    let attempts = 0;
+    const maxAttempts = 15;
+
     try {
-      const res = await getComparativeAnalysisAPI(patientId);
-      console.log("[comparative-analysis] response:", res);
-      if (res && res.success) {
-        setComparativeData(Array.isArray(res.data) ? res.data : []);
+      while (attempts < maxAttempts) {
+        attempts++;
+        const res = await getComparativeAnalysisAPI(patientId);
+        console.log("[comparative-analysis] response:", res);
+
+        const is401 =
+          res?.message?.toLowerCase().includes("unauthenticated") ||
+          res?.message?.includes("401");
+        if (is401) {
+          setComparativeError("401");
+          setComparativeLoading(false);
+          navigate("/login");
+          return;
+        }
+
+        if (res?.success === false) {
+           setComparativeError(res?.message || "An error occurred while fetching comparative analysis.");
+           setComparativeLoading(false);
+           return;
+        }
+
+        const stillProcessing = res?.data?.still_processing === true;
+        const analysis = Array.isArray(res?.data?.analysis) ? res.data.analysis : [];
+
+        if (stillProcessing) {
+          // Keep existing loading state true, wait 4 seconds before polling again
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+          continue;
+        }
+
+        // If AI extraction failed but historical data is present, we just render the historical data.
+        // If analysis is empty, it will naturally render the existing empty state.
+        
+        // "No historical data found response: data: null"
+        if (res?.data === null && res?.success === true) {
+            setComparativeData([]);
+            setComparativeLoadedFor(patientId);
+            setComparativeLoading(false);
+            return;
+        }
+
+        // Processing is complete
+        setComparativeData(analysis);
         setComparativeLoadedFor(patientId);
-      } else {
-        setComparativeError(
-          res?.message || "Failed to load comparative analysis.",
-        );
+        setComparativeLoading(false);
+        return;
       }
+
+      setComparativeError("Timeout while waiting for comparative analysis.");
     } catch (err) {
       console.error("[comparative-analysis] exception:", err);
       setComparativeError("Network error. Please check your connection.");

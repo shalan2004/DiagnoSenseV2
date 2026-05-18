@@ -514,7 +514,7 @@ export const getPatientActivitiesAPI = async (patientId) => {
 
 
 export const getComparativeAnalysisAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/comparative-analysis`, {
+  return await apiCall(`/api/v1/patients/${patientId}/comparative-analysis`, {
     method: 'GET',
   });
 };
