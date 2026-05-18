@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { addPatientAPI } from "./mockAPI";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { addPatientAPI, getPatientForEditAPI, updatePatientAPI } from "./mockAPI";
 import UploadFileItem from "./UploadFileItem";
 import ProcessingReports from "../components/ProcessingReports";
 import { useSidebar } from "../components/SidebarContext";
@@ -16,6 +16,12 @@ import { getDirection, getTextAlign } from "../utils/textUtils";
 
 const AddPatient = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { patientId } = useParams();
+  const isEditMode = !!patientId;
+  const patientState = location.state?.patientData;
+  const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
+  const [successToast, setSuccessToast] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const { unreadCount, openNotifications } = useNotifications();
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
@@ -121,6 +127,63 @@ const AddPatient = () => {
     surgeryText: formData.surgeryText,
     canNext: isStep2Valid,
   });
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    const fetchPatient = async () => {
+      setIsFetching(true);
+      
+      let d = patientState;
+      if (!d) {
+        const res = await getPatientForEditAPI(patientId);
+        if (res.success && res.data) {
+          d = res.data;
+        }
+      }
+
+      if (d) {
+        const pi = d?.personal_info || d;
+        const mh = d?.medical_history || d;
+
+        const name = pi.name || pi.patientName || pi.full_name || pi.patient_name || "";
+        const contact = pi.contact || pi.email || pi.phone || "";
+        const dob = pi.date_of_birth || pi.age || pi.dob || "";
+        const national_id = pi.national_id || pi.patientId || "";
+        const gender = pi.gender || "";
+
+        const is_smoker = mh.is_smoker ?? mh.smoker ?? null;
+        const prev_surgeries = mh.previous_surgeries_name ?? mh.previousSurgeries ?? "";
+        const has_surgeries = mh.previous_surgeries ?? !!prev_surgeries;
+        const chronic_diseases = mh.chronic_diseases ?? mh.chronicDiseases ?? [];
+        const medications = mh.current_medications ?? mh.medications ?? "";
+        const allergies = mh.allergies ?? "";
+        const family_history = mh.family_history ?? mh.familyHistory ?? "";
+        const chief_complaint = mh.current_complaints ?? mh.current_complaint ?? mh.chief_complaint ?? mh.chiefComplaint ?? "";
+
+        setFormData((prev) => ({
+          ...prev,
+          fullName: name,
+          contact: contact,
+          date_of_birth: dob,
+          national_id: national_id,
+          surgeryText: prev_surgeries,
+          medications: medications,
+          allergies: allergies,
+          familyHistory: family_history,
+          ChiefComplaint: chief_complaint,
+        }));
+        setSelectedGender(gender || null);
+        if (is_smoker !== null) {
+          const smokerStr = String(is_smoker).toLowerCase();
+          setIsSmoker(!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
+        }
+        if (has_surgeries !== null) setHasSurgeries(!!has_surgeries);
+        setSelectedChronicDiseases(Array.isArray(chronic_diseases) ? chronic_diseases : []);
+      }
+      setIsFetching(false);
+    };
+    fetchPatient();
+  }, [isEditMode, patientId, patientState]);
 
   useEffect(() => {
     const categories = ["lab", "history", "radiology"];
@@ -385,7 +448,7 @@ const AddPatient = () => {
       fileManager.history.length +
       fileManager.radiology.length;
 
-    if (totalFiles === 0) {
+    if (!isEditMode && totalFiles === 0) {
       setFieldErrors({
         lab: "Please upload at least one lab test result or radiology report or medical history report.",
       });
@@ -395,6 +458,10 @@ const AddPatient = () => {
 
     try {
       const apiFormData = new FormData();
+
+      if (isEditMode) {
+        apiFormData.append("_method", "PATCH");
+      }
 
       apiFormData.append("name", formData.fullName);
 
@@ -455,10 +522,23 @@ const AddPatient = () => {
         apiFormData.append("radiology[]", entry.file),
       );
 
-      const result = await addPatientAPI(apiFormData);
-      console.log("Add Patient Result:", result);
+      const result = isEditMode 
+        ? await updatePatientAPI(patientId, apiFormData)
+        : await addPatientAPI(apiFormData);
+      console.log(isEditMode ? "Update Patient Result:" : "Add Patient Result:", result);
 
       if (result.success) {
+        if (isEditMode) {
+          setSuccessToast(result.message || "Patient file updated successfully.");
+          window.dispatchEvent(new CustomEvent("patientListInvalidated"));
+          window.dispatchEvent(new CustomEvent("dashboardInvalidated"));
+          
+          setTimeout(() => {
+            navigate(`/patient-profile/${patientId}`);
+          }, 1500);
+          return;
+        }
+
         localStorage.setItem(
           "currentPatient",
           JSON.stringify({
@@ -506,6 +586,22 @@ const AddPatient = () => {
         if (result.status === 401) {
           setFieldErrors({
             _general: "Session expired or unauthorized. Please log in again.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (result.status === 403 || result.message === "This action is unauthorized.") {
+          setFieldErrors({
+            _general: "This action is unauthorized.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (result.status >= 500) {
+          setFieldErrors({
+            _general: result.message || "An internal server error occurred.",
           });
           setIsProcessing(false);
           return;
@@ -576,6 +672,23 @@ const AddPatient = () => {
     );
   }
 
+  if (isFetching) {
+    return (
+      <div>
+        <div className="background-pattern"></div>
+        <Sidebar activePage="addpatient" />
+        <main className={`main-content${isSidebarCollapsed ? " collapsed" : ""}`}>
+          <div className="wizard-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "400px", gap: "16px" }}>
+            <svg style={{ animation: "spin 1s linear infinite", width: "40px", height: "40px", color: "#2A66FF" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <p style={{ color: "#6B7280", fontSize: "16px" }}>Loading patient data…</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="background-pattern"></div>
@@ -602,6 +715,30 @@ const AddPatient = () => {
         isOpen={isLogoutModalOpen}
         onClose={closeLogoutModal}
       />
+
+      {successToast && (
+        <div className="edit-success-toast" style={{
+          position: "fixed",
+          top: "20px",
+          right: "20px",
+          backgroundColor: "#10B981",
+          color: "white",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          zIndex: 9999,
+          fontWeight: 500,
+          animation: "slideIn 0.3s ease-out"
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {successToast}
+        </div>
+      )}
 
       <main className={`main-content${isSidebarCollapsed ? " collapsed" : ""}`}>
         <div className="page-header"></div>
@@ -1347,9 +1484,9 @@ const AddPatient = () => {
                         />
                       </svg>
                       <span className="btn-text-full">
-                        Process &amp; Analyze Reports
+                        {isEditMode ? "Update File" : "Process & Analyze Reports"}
                       </span>
-                      <span className="btn-text-short">Process</span>
+                      <span className="btn-text-short">{isEditMode ? "Update" : "Process"}</span>
                     </>
                   )}
                 </button>

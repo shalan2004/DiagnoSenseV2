@@ -500,7 +500,7 @@ export const updatePatientStatusAPI = async (patientId, status) => {
 
 
 export const getDecisionSupportAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/decision-support`, {
+  return await apiCall(`/api/v1/patients/${patientId}/decision-support`, {
     method: 'GET',
   });
 };
@@ -718,7 +718,7 @@ export const getPatientForEditAPI = async (patientId) => {
 export const updatePatientAPI = async (patientId, formData) => {
   const token = getCookie('user_token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/patients/${patientId}`, {
       method: 'POST', 
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -738,6 +738,7 @@ export const updatePatientAPI = async (patientId, formData) => {
       }
       return {
         success: false,
+        status: response.status,
         message: data.message || 'Something went wrong',
         errors: data.errors || null,
       };
