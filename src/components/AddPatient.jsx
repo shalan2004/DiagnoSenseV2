@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { addPatientAPI, getPatientForEditAPI, updatePatientAPI } from "./mockAPI";
+import { addPatientAPI, getPatientOverviewAPI, updatePatientAPI } from "./mockAPI";
 import UploadFileItem from "./UploadFileItem";
 import ProcessingReports from "../components/ProcessingReports";
 import { useSidebar } from "../components/SidebarContext";
@@ -135,9 +135,10 @@ const AddPatient = () => {
       
       let d = patientState;
       if (!d) {
-        const res = await getPatientForEditAPI(patientId);
+        const res = await getPatientOverviewAPI(patientId);
         if (res.success && res.data) {
-          d = res.data;
+          const raw = res.data;
+          d = Array.isArray(raw) ? raw[0] : (raw ?? res);
         }
       }
 
