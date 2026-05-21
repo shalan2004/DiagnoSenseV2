@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { addPatientAPI } from "./mockAPI";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { addPatientAPI, getPatientOverviewAPI, updatePatientAPI } from "./mockAPI";
 import UploadFileItem from "./UploadFileItem";
 import ProcessingReports from "../components/ProcessingReports";
 import { useSidebar } from "../components/SidebarContext";
@@ -9,7 +9,6 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import "../css/AddPatient.css";
 import LogoutConfirmation from "../components/ConfirmationModal.jsx";
-import { getCookie } from "./cookieUtils";
 import { useNotifications } from "./NotificationsContext";
 import { getDoctorInitials } from "./Dashboard";
 import { useTranscription } from "../hooks/useTranscription";
@@ -17,12 +16,17 @@ import { getDirection, getTextAlign } from "../utils/textUtils";
 
 const AddPatient = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { patientId } = useParams();
+  const isEditMode = !!patientId;
+  const patientState = location.state?.patientData;
+  const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
+  const [successToast, setSuccessToast] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const { unreadCount, openNotifications } = useNotifications();
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
   const [pollingInfo, setPollingInfo] = useState({
     patientId: null,
-    token: null,
   });
   const [selectedGender, setSelectedGender] = useState(null);
   const [isSmoker, setIsSmoker] = useState(null);
@@ -75,10 +79,9 @@ const AddPatient = () => {
 
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
-    age: "",
-    phone: "",
-    nationalId: "",
+    contact: "",
+    date_of_birth: "",
+    national_id: "",
     surgeryText: "",
     medications: "",
     allergies: "",
@@ -90,10 +93,9 @@ const AddPatient = () => {
   // Errors from other steps (step 2/3) or _general must NOT block Step 1.
   const step1ErrorFields = [
     "fullName",
-    "email",
-    "phone",
-    "age",
-    "nationalId",
+    "contact",
+    "date_of_birth",
+    "national_id",
     "gender",
     "is_smoker",
   ];
@@ -103,18 +105,18 @@ const AddPatient = () => {
 
   const isStep1Valid =
     formData.fullName.trim() &&
-    (formData.email.trim() || formData.phone.trim()) &&
-    formData.age &&
+    formData.contact.trim() &&
+    formData.date_of_birth &&
     selectedGender &&
-    formData.nationalId.trim() &&
+    formData.national_id.trim() &&
     !hasStep1Errors;
 
   console.log("[step1] nextDisabled", {
     currentStep,
     nextDisabled: !isStep1Valid,
     hasErrors: hasStep1Errors,
-    national_id: formData.nationalId,
-    err: fieldErrors.nationalId,
+    national_id: formData.national_id,
+    err: fieldErrors.national_id,
   });
 
   // Step 2 is valid unless surgeries=YES and the name field is empty
@@ -125,6 +127,64 @@ const AddPatient = () => {
     surgeryText: formData.surgeryText,
     canNext: isStep2Valid,
   });
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    const fetchPatient = async () => {
+      setIsFetching(true);
+      
+      let d = patientState;
+      if (!d) {
+        const res = await getPatientOverviewAPI(patientId);
+        if (res.success && res.data) {
+          const raw = res.data;
+          d = Array.isArray(raw) ? raw[0] : (raw ?? res);
+        }
+      }
+
+      if (d) {
+        const pi = d?.personal_info || d;
+        const mh = d?.medical_history || d;
+
+        const name = pi.name || pi.patientName || pi.full_name || pi.patient_name || "";
+        const contact = pi.contact || pi.email || pi.phone || "";
+        const dob = pi.date_of_birth || pi.age || pi.dob || "";
+        const national_id = pi.national_id || pi.patientId || "";
+        const gender = pi.gender || "";
+
+        const is_smoker = mh.is_smoker ?? mh.smoker ?? null;
+        const prev_surgeries = mh.previous_surgeries_name ?? mh.previousSurgeries ?? "";
+        const has_surgeries = mh.previous_surgeries ?? !!prev_surgeries;
+        const chronic_diseases = mh.chronic_diseases ?? mh.chronicDiseases ?? [];
+        const medications = mh.current_medications ?? mh.medications ?? "";
+        const allergies = mh.allergies ?? "";
+        const family_history = mh.family_history ?? mh.familyHistory ?? "";
+        const chief_complaint = mh.current_complaints ?? mh.current_complaint ?? mh.chief_complaint ?? mh.chiefComplaint ?? "";
+
+        setFormData((prev) => ({
+          ...prev,
+          fullName: name,
+          contact: contact,
+          date_of_birth: dob,
+          national_id: national_id,
+          surgeryText: prev_surgeries,
+          medications: medications,
+          allergies: allergies,
+          familyHistory: family_history,
+          ChiefComplaint: chief_complaint,
+        }));
+        setSelectedGender(gender || null);
+        if (is_smoker !== null) {
+          const smokerStr = String(is_smoker).toLowerCase();
+          setIsSmoker(!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
+        }
+        if (has_surgeries !== null) setHasSurgeries(!!has_surgeries);
+        setSelectedChronicDiseases(Array.isArray(chronic_diseases) ? chronic_diseases : []);
+      }
+      setIsFetching(false);
+    };
+    fetchPatient();
+  }, [isEditMode, patientId, patientState]);
 
   useEffect(() => {
     const categories = ["lab", "history", "radiology"];
@@ -160,20 +220,17 @@ const AddPatient = () => {
 
   const extractFieldErrors = (result) => {
     const backendFieldMap = {
-      email: "email",
-      phone: "phone",
-      national_id: "nationalId",
+      contact: "contact",
       name: "fullName",
-      age: "age",
+      date_of_birth: "date_of_birth",
       gender: "gender",
       is_smoker: "is_smoker",
-      previous_surgeries: "previous_surgeries",
       previous_surgeries_name: "surgeryText",
       chronic_diseases: "chronic_diseases",
-      medications: "medications",
+      current_medications: "medications",
       allergies: "allergies",
       family_history: "familyHistory",
-      current_complaint: "ChiefComplaint",
+      current_complaints: "ChiefComplaint",
       lab: "lab",
       radiology: "radiology",
       medical_history: "medical_history",
@@ -196,22 +253,19 @@ const AddPatient = () => {
 
     const message = result.message || "";
     if (
-      message.includes("users_phone_unique") ||
-      (message.includes("Duplicate entry") && message.includes("phone"))
+      message.includes("users_contact_unique") ||
+      (message.includes("Duplicate entry") && message.includes("contact")) ||
+      message.includes("contact has already been taken") ||
+      (result.errors && result.errors.contact && result.errors.contact[0].includes("already been taken"))
     ) {
-      newFieldErrors.phone = "Phone number already exists.";
+      newFieldErrors.contact = "Contact already exists.";
     }
-    if (
-      message.includes("users_email_unique") ||
-      (message.includes("Duplicate entry") && message.includes("email"))
-    ) {
-      newFieldErrors.email = "Email already exists.";
-    }
+
     if (
       message.includes("national_id") &&
       message.includes("Duplicate entry")
     ) {
-      newFieldErrors.nationalId = "National ID already exists.";
+      newFieldErrors.national_id = "National ID already exists.";
     }
 
     return newFieldErrors;
@@ -222,10 +276,9 @@ const AddPatient = () => {
   const navigateToErrorStep = (errors) => {
     const step1Fields = [
       "fullName",
-      "email",
-      "phone",
-      "age",
-      "nationalId",
+      "contact",
+      "date_of_birth",
+      "national_id",
       "gender",
       "is_smoker",
     ];
@@ -298,7 +351,7 @@ const AddPatient = () => {
     let newValue = value;
     let newErrors = { ...fieldErrors };
 
-    if (id === "phone" || id === "nationalId" || id === "age") {
+    if (id === "national_id") {
       newValue = value.replace(/\D/g, "");
     } else if (id === "fullName") {
       newValue = value.replace(/[0-9]/g, "");
@@ -306,20 +359,6 @@ const AddPatient = () => {
 
     if (newErrors[id]) {
       delete newErrors[id];
-    }
-
-    // Email/Phone mutual exclusivity: clear the other when one is typed
-    if (id === "email") {
-      delete newErrors.phone;
-      setFieldErrors(newErrors);
-      setFormData((prev) => ({ ...prev, email: newValue, phone: "" }));
-      return;
-    }
-    if (id === "phone") {
-      delete newErrors.email;
-      setFieldErrors(newErrors);
-      setFormData((prev) => ({ ...prev, phone: newValue, email: "" }));
-      return;
     }
 
     setFieldErrors(newErrors);
@@ -402,26 +441,65 @@ const AddPatient = () => {
   };
 
   const handleProcess = async () => {
+    // If patient already created successfully but AI analysis failed, we can retry the AI analysis directly
+    if (!isEditMode && pollingInfo.patientId) {
+      setIsProcessing(true);
+      setFieldErrors({});
+      setShowProcessingScreen(true);
+      return;
+    }
+
     setIsProcessing(true);
     setFieldErrors({});
+
+    const totalFiles =
+      fileManager.lab.length +
+      fileManager.history.length +
+      fileManager.radiology.length;
+
+    if (!isEditMode && totalFiles === 0) {
+      setFieldErrors({
+        lab: "Please upload at least one lab test result or radiology report or medical history report.",
+      });
+      setIsProcessing(false);
+      return;
+    }
 
     try {
       const apiFormData = new FormData();
 
-      apiFormData.append("name", formData.fullName);
-      if (formData.email.trim()) apiFormData.append("email", formData.email);
-      if (formData.phone.trim()) apiFormData.append("phone", formData.phone);
-      apiFormData.append("age", formData.age);
-      apiFormData.append("gender", selectedGender);
-      apiFormData.append("national_id", formData.nationalId);
+      if (isEditMode) {
+        apiFormData.append("_method", "PATCH");
+      }
 
-      apiFormData.append("is_smoker", isSmoker ? "1" : "0");
-      apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
-      if (hasSurgeries) {
-        apiFormData.append(
-          "previous_surgeries_name",
-          formData.surgeryText || "",
-        );
+      apiFormData.append("name", formData.fullName);
+
+      if (formData.contact.trim()) {
+        apiFormData.append("contact", formData.contact.trim());
+      }
+
+      if (formData.date_of_birth) {
+        apiFormData.append("date_of_birth", formData.date_of_birth);
+      }
+
+      if (selectedGender) {
+        apiFormData.append("gender", selectedGender);
+      }
+
+      if (formData.national_id.trim()) {
+        apiFormData.append("national_id", formData.national_id.trim());
+      }
+
+      if (isSmoker !== null) {
+        apiFormData.append("is_smoker", isSmoker ? "1" : "0");
+      }
+
+      if (hasSurgeries !== null) {
+        apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
+      }
+
+      if (hasSurgeries && formData.surgeryText) {
+        apiFormData.append("previous_surgeries_name", formData.surgeryText);
       }
 
       if (selectedChronicDiseases.length > 0) {
@@ -429,14 +507,19 @@ const AddPatient = () => {
           apiFormData.append("chronic_diseases[]", disease);
         });
       }
-      // else {
-      //   apiFormData.append("chronic_diseases[]", "");
-      // }
 
-      apiFormData.append("medications", formData.medications || "");
-      apiFormData.append("allergies", formData.allergies || "");
-      apiFormData.append("family_history", formData.familyHistory || "");
-      apiFormData.append("current_complaint", formData.ChiefComplaint || "");
+      if (formData.medications) {
+        apiFormData.append("current_medications", formData.medications);
+      }
+      if (formData.allergies) {
+        apiFormData.append("allergies", formData.allergies);
+      }
+      if (formData.familyHistory) {
+        apiFormData.append("family_history", formData.familyHistory);
+      }
+      if (formData.ChiefComplaint) {
+        apiFormData.append("current_complaints", formData.ChiefComplaint);
+      }
 
       fileManager.lab.forEach((entry) =>
         apiFormData.append("lab[]", entry.file),
@@ -448,20 +531,33 @@ const AddPatient = () => {
         apiFormData.append("radiology[]", entry.file),
       );
 
-      const result = await addPatientAPI(apiFormData);
-      console.log("Add Patient Result:", result);
+      const result = isEditMode 
+        ? await updatePatientAPI(patientId, apiFormData)
+        : await addPatientAPI(apiFormData);
+      console.log(isEditMode ? "Update Patient Result:" : "Add Patient Result:", result);
 
       if (result.success) {
+        if (isEditMode) {
+          setSuccessToast(result.message || "Patient file updated successfully.");
+          window.dispatchEvent(new CustomEvent("patientListInvalidated"));
+          window.dispatchEvent(new CustomEvent("dashboardInvalidated"));
+          
+          setTimeout(() => {
+            navigate(`/patient-profile/${patientId}`);
+          }, 1500);
+          return;
+        }
+
         localStorage.setItem(
           "currentPatient",
           JSON.stringify({
             patient_id: result.patient_id,
             patientInfo: {
               fullName: formData.fullName,
-              age: formData.age,
+              date_of_birth: formData.date_of_birth,
               gender: selectedGender,
-              phone: formData.phone,
-              nationalId: formData.nationalId,
+              contact: formData.contact,
+              national_id: formData.national_id,
             },
             medicalHistory: {
               isSmoker,
@@ -487,8 +583,7 @@ const AddPatient = () => {
 
         refreshCredits(); // Update top bar credits
 
-        const token = getCookie("user_token");
-        setPollingInfo({ patientId: result.data.data.patient_id, token });
+        setPollingInfo({ patientId: result.patient_id });
         setShowProcessingScreen(true);
       } else {
         // Log the raw 422 body so we can see every field the backend flagged
@@ -497,11 +592,44 @@ const AddPatient = () => {
           errors: result.errors,
         });
 
+        if (result.status === 401) {
+          setFieldErrors({
+            _general: "Session expired or unauthorized. Please log in again.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (result.status === 403 || result.message === "This action is unauthorized.") {
+          setFieldErrors({
+            _general: "This action is unauthorized.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
+        if (result.status >= 500) {
+          setFieldErrors({
+            _general: result.message || "An internal server error occurred.",
+          });
+          setIsProcessing(false);
+          return;
+        }
+
         const newFieldErrors = extractFieldErrors(result);
 
         if (Object.keys(newFieldErrors).length > 0) {
           // Store ALL parsed errors at once — user sees every highlighted field
           // across steps without needing multiple re-submits
+          if (
+            result.message &&
+            result.message !== "Validation Errors" &&
+            result.message !== "The given data was invalid." &&
+            !result.message.includes("validation") &&
+            !result.message.includes("invalid")
+          ) {
+            newFieldErrors._general = result.message;
+          }
           setFieldErrors(newFieldErrors);
           navigateToErrorStep(newFieldErrors);
         } else {
@@ -527,10 +655,12 @@ const AddPatient = () => {
     return (
       <ProcessingReports
         patientId={pollingInfo.patientId}
-        token={pollingInfo.token}
         onSuccess={(data) => {
           navigate(`/patient-profile/${pollingInfo.patientId}`, {
-            state: { keyInfoData: data, patientId: pollingInfo.patientId },
+            state: {
+              keyInfoData: data,
+              patientId: pollingInfo.patientId,
+            },
           });
         }}
         onFailure={(msg) => {
@@ -539,7 +669,7 @@ const AddPatient = () => {
           setFieldErrors({
             _general: msg || "AI analysis failed. Please try again.",
           });
-          setCurrentStep(1); // Ensure user goes back to the beginning on failure
+          setCurrentStep(3); // Return user to Upload Reports so they can retry
         }}
         onStop={() => {
           // User manually stopped — return them to the Upload Reports step
@@ -548,6 +678,23 @@ const AddPatient = () => {
           setCurrentStep(3);
         }}
       />
+    );
+  }
+
+  if (isFetching) {
+    return (
+      <div>
+        <div className="background-pattern"></div>
+        <Sidebar activePage="addpatient" />
+        <main className={`main-content${isSidebarCollapsed ? " collapsed" : ""}`}>
+          <div className="wizard-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "400px", gap: "16px" }}>
+            <svg style={{ animation: "spin 1s linear infinite", width: "40px", height: "40px", color: "#2A66FF" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <p style={{ color: "#6B7280", fontSize: "16px" }}>Loading patient data…</p>
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -577,6 +724,30 @@ const AddPatient = () => {
         isOpen={isLogoutModalOpen}
         onClose={closeLogoutModal}
       />
+
+      {successToast && (
+        <div className="edit-success-toast" style={{
+          position: "fixed",
+          top: "20px",
+          right: "20px",
+          backgroundColor: "#10B981",
+          color: "white",
+          padding: "12px 24px",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          zIndex: 9999,
+          fontWeight: 500,
+          animation: "slideIn 0.3s ease-out"
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          {successToast}
+        </div>
+      )}
 
       <main className={`main-content${isSidebarCollapsed ? " collapsed" : ""}`}>
         <div className="page-header"></div>
@@ -671,7 +842,7 @@ const AddPatient = () => {
               </div>
 
               <div className="form-grid add-patient-step1">
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label className="form-label required">Full Name</label>
                   <input
                     type="text"
@@ -697,45 +868,16 @@ const AddPatient = () => {
                 </div>
 
                 <div className="form-group">
-                  <label
-                    className={`form-label ${!formData.phone.trim() ? "required" : ""}`}
-                  >
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className={`form-input${fieldErrors.email ? " target-error" : ""}`}
-                    id="email"
-                    placeholder="Enter patient's email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={!!formData.phone.trim()}
-                  />
-                  {fieldErrors.email && (
-                    <div
-                      style={{
-                        color: "#EF4444",
-                        fontSize: "12px",
-                        marginTop: "4px",
-                      }}
-                    >
-                      {fieldErrors.email}
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label required">Age</label>
+                  <label className="form-label required">Contact</label>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    className={`form-input${fieldErrors.age ? " target-error" : ""}`}
-                    id="age"
-                    placeholder="Enter age"
-                    value={formData.age}
+                    className={`form-input${fieldErrors.contact ? " target-error" : ""}`}
+                    id="contact"
+                    placeholder="Enter patient's phone number or email"
+                    value={formData.contact}
                     onChange={handleInputChange}
                   />
-                  {fieldErrors.age && (
+                  {fieldErrors.contact && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -743,7 +885,7 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.age}
+                      {fieldErrors.contact}
                     </div>
                   )}
                 </div>
@@ -759,8 +901,8 @@ const AddPatient = () => {
                     >
                       {selectedGender
                         ? selectedGender.charAt(0).toUpperCase() +
-                          selectedGender.slice(1)
-                        : "Select gender"}
+                        selectedGender.slice(1)
+                        : "Select patient's gender"}
                       <svg className="arrow-icon" viewBox="0 0 24 24">
                         <path d="M6 9l6 6 6-6" />
                       </svg>
@@ -790,25 +932,7 @@ const AddPatient = () => {
                       </div>
                     )}
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label
-                    className={`form-label ${!formData.email.trim() ? "required" : ""}`}
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    className={`form-input${fieldErrors.phone ? " target-error" : ""}`}
-                    id="phone"
-                    inputMode="numeric"
-                    placeholder="+20 XXX XXX XXXX"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    disabled={!!formData.email.trim()}
-                  />
-                  {fieldErrors.phone && (
+                  {fieldErrors.gender && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -816,7 +940,30 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.phone}
+                      {fieldErrors.gender}
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label required">Date of Birth</label>
+                  <input
+                    type="date"
+                    className={`form-input${fieldErrors.date_of_birth ? " target-error" : ""}`}
+                    id="date_of_birth"
+                    placeholder="Select patient's date of birth"
+                    value={formData.date_of_birth}
+                    onChange={handleInputChange}
+                  />
+                  {fieldErrors.date_of_birth && (
+                    <div
+                      style={{
+                        color: "#EF4444",
+                        fontSize: "12px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {fieldErrors.date_of_birth}
                     </div>
                   )}
                 </div>
@@ -825,14 +972,14 @@ const AddPatient = () => {
                   <label className="form-label required">National ID</label>
                   <input
                     type="text"
-                    className={`form-input${fieldErrors.nationalId ? " target-error" : ""}`}
-                    id="nationalId"
+                    className={`form-input${fieldErrors.national_id ? " target-error" : ""}`}
+                    id="national_id"
                     inputMode="numeric"
-                    placeholder="Enter ID number"
-                    value={formData.nationalId}
+                    placeholder="Enter patient's national ID"
+                    value={formData.national_id}
                     onChange={handleInputChange}
                   />
-                  {fieldErrors.nationalId && (
+                  {fieldErrors.national_id && (
                     <div
                       style={{
                         color: "#EF4444",
@@ -840,7 +987,7 @@ const AddPatient = () => {
                         marginTop: "4px",
                       }}
                     >
-                      {fieldErrors.nationalId}
+                      {fieldErrors.national_id}
                     </div>
                   )}
                 </div>
@@ -1268,24 +1415,24 @@ const AddPatient = () => {
               {(fieldErrors.lab ||
                 fieldErrors.radiology ||
                 fieldErrors.medical_history) && (
-                <div
-                  style={{
-                    color: "#EF4444",
-                    fontSize: "14px",
-                    marginBottom: "20px",
-                    textAlign: "center",
-                    fontWeight: "500",
-                    backgroundColor: "#FEF2F2",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px dashed #FCA5A5",
-                  }}
-                >
-                  {fieldErrors.lab ||
-                    fieldErrors.radiology ||
-                    fieldErrors.medical_history}
-                </div>
-              )}
+                  <div
+                    style={{
+                      color: "#EF4444",
+                      fontSize: "14px",
+                      marginBottom: "20px",
+                      textAlign: "center",
+                      fontWeight: "500",
+                      backgroundColor: "#FEF2F2",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      border: "1px dashed #FCA5A5",
+                    }}
+                  >
+                    {fieldErrors.lab ||
+                      fieldErrors.radiology ||
+                      fieldErrors.medical_history}
+                  </div>
+                )}
 
               <div className="wizard-actions">
                 <button
@@ -1346,9 +1493,9 @@ const AddPatient = () => {
                         />
                       </svg>
                       <span className="btn-text-full">
-                        Process &amp; Analyze Reports
+                        {isEditMode ? "Update File" : "Process & Analyze Reports"}
                       </span>
-                      <span className="btn-text-short">Process</span>
+                      <span className="btn-text-short">{isEditMode ? "Update" : "Process"}</span>
                     </>
                   )}
                 </button>

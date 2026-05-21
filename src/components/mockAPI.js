@@ -1,8 +1,8 @@
-const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
+// const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
 // const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
-// const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 import { getCookie, setCookie, deleteCookie, setJsonCookie } from './cookieUtils';
 
@@ -21,12 +21,7 @@ const apiCall = async (endpoint, options = {}) => {
 
   const executeCall = async () => {
     try {
-      const token =
-        localStorage.getItem('c6b1f90cba489c85caa3c2eefebd0ccc') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('authToken') ||
-        localStorage.getItem('accessToken') ||
-        getCookie('user_token');
+      const token = getCookie('user_token');
 
       const isFormData = fetchOptions.body instanceof FormData;
 
@@ -93,9 +88,12 @@ export const registerAPI = async (userData) => {
     body: JSON.stringify(payload),
   });
 
-  if (result.success && result.data && result.data.token) {
-    setCookie('user_token', result.data.token, 7);
-    setJsonCookie('user', result.data.user, 7);
+  const token = result?.token || result?.data?.token;
+  const user = result?.data?.user || result?.user || result?.data;
+
+  if (result.success && token) {
+    setCookie('user_token', token, 7);
+    if (user) setJsonCookie('user', user, 7);
     setCookie('isAuthenticated', 'true', 7);
   }
 
@@ -108,9 +106,12 @@ export const loginAPI = async (contact, password, type = "doctor") => {
     body: JSON.stringify({ contact, password }),
   });
 
-  if (result.success && result.data && result.data.token) {
-    setCookie('user_token', result.data.token, 7);
-    setJsonCookie('user', result.data.user, 7);
+  const token = result?.token || result?.data?.token;
+  const user = result?.data?.user || result?.user || result?.data;
+
+  if (result.success && token) {
+    setCookie('user_token', token, 7);
+    if (user) setJsonCookie('user', user, 7);
     setCookie('isAuthenticated', 'true', 7);
 
     window.dispatchEvent(new CustomEvent("authChanged"));
@@ -225,7 +226,7 @@ export const googleCallbackAPI = async (code) => {
     if (user) {
       setJsonCookie('user', user, 7);
     }
-    localStorage.setItem('user_token', token);
+    // window.dispatchEvent(new CustomEvent("authChanged"));
 
     window.dispatchEvent(new CustomEvent("authChanged"));
   }
@@ -424,7 +425,7 @@ export const extractPatientsPayload = (response) => {
 export const addPatientAPI = async (formData) => {
   const token = getCookie('user_token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/patients`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/patients`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -445,11 +446,12 @@ export const addPatientAPI = async (formData) => {
       return {
         success: false,
         message: data.message || 'Something went wrong',
-        errors: data.errors || null,
+        errors: data.errors || data.data || null,
+        status: response.status,
       };
     }
 
-    const patientId = data?.data?.id ?? data?.patient_id ?? null;
+    const patientId = data?.data?.patient_id ?? data?.data?.id ?? data?.patient_id ?? null;
     if (patientId) {
       localStorage.setItem('current_patient_id', patientId);
     }
@@ -474,31 +476,11 @@ export const addPatientAPI = async (formData) => {
   }
 };
 
-export const getPatientKeyInfoAPI = async (patientId, token) => {
-
-  if (!token) {
-    return await apiCall(`/api/patients/${patientId}/key-info`, { method: 'GET' });
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}/key-info`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    });
-    console.log("key-info status:", response.status);
-    const data = await response.json();
-    return data;
-  } catch (err) {
-    console.error("getPatientKeyInfoAPI catch:", err);
-    return { success: false, message: "Network error" };
-  }
+export const getPatientKeyInfoAPI = async (patientId) => {
+  return await apiCall(`/api/v1/patients/${patientId}/key-info`, { method: 'GET' });
 };
 export const getPatientOverviewAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/overview`, { method: 'GET' });
+  return await apiCall(`/api/v1/patients/${patientId}/overview`, { method: 'GET' });
 };
 
 export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority }) => {
@@ -543,7 +525,7 @@ export const updatePatientStatusAPI = async (patientId, status) => {
 
 
 export const getDecisionSupportAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/decision-support`, {
+  return await apiCall(`/api/v1/patients/${patientId}/decision-support`, {
     method: 'GET',
   });
 };
@@ -557,7 +539,7 @@ export const getPatientActivitiesAPI = async (patientId) => {
 
 
 export const getComparativeAnalysisAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/comparative-analysis`, {
+  return await apiCall(`/api/v1/patients/${patientId}/comparative-analysis`, {
     method: 'GET',
   });
 };
@@ -761,8 +743,8 @@ export const getPatientForEditAPI = async (patientId) => {
 export const updatePatientAPI = async (patientId, formData) => {
   const token = getCookie('user_token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
-      method: 'POST',
+    const response = await fetch(`${API_BASE_URL}/api/v1/patients/${patientId}`, {
+      method: 'POST', 
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -781,6 +763,7 @@ export const updatePatientAPI = async (patientId, formData) => {
       }
       return {
         success: false,
+        status: response.status,
         message: data.message || 'Something went wrong',
         errors: data.errors || null,
       };
@@ -885,19 +868,22 @@ export const getUnreadNotificationsCountAPI = async () => {
 };
 
 /**
- * PATCH /api/v1/notifications/{id}/read
+ * PATCH /api/v1/notifications/notification/read
  * Marks a single notification as read.
  */
 export const markNotificationAsReadAPI = async (id) => {
-  return await apiCall(`/api/v1/notifications/${id}/read`, { method: 'PATCH' });
+  return await apiCall('/api/v1/notifications/notification/read', {
+    method: 'PATCH',
+    body: JSON.stringify({ notification_id: id }),
+  });
 };
 
 /**
- * POST /api/v1/notifications/mark-all-read
+ * PATCH /api/v1/notifications/read-all
  * Marks all notifications as read.
  */
 export const markAllNotificationsAsReadAPI = async () => {
-  return await apiCall('/api/v1/notifications/mark-all-read', { method: 'POST' });
+  return await apiCall('/api/v1/notifications/read-all', { method: 'PATCH' });
 };
 
 /**

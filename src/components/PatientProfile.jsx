@@ -117,8 +117,14 @@ const PatientProfile = () => {
     pointIdx: -1,
   });
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [visitedTabs, setVisitedTabs] = useState({ overview: true });
+  // If Add Patient flow passes activeTab in navigation state, open that tab directly
+  const initialTab = location.state?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [visitedTabs, setVisitedTabs] = useState(
+    initialTab !== 'overview'
+      ? { overview: true, [initialTab]: true }
+      : { overview: true }
+  );
 
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const avatarMenuRef = useRef(null);
@@ -222,6 +228,10 @@ const PatientProfile = () => {
 
   // ── Key info fetched from backend (View Details path) ──
   const [keyInfo, setKeyInfo] = useState(null);
+  // OCR source files returned by the v1 key-info endpoint
+  const [keyInfoOcrFiles, setKeyInfoOcrFiles] = useState([]);
+  // Whether the backend is still processing documents
+  const [keyInfoStillProcessing, setKeyInfoStillProcessing] = useState(false);
 
   // keyInfo is the single source of truth for both flows.
   // In Add Patient flow it is seeded from navigation state then overwritten by the backend fetch.
@@ -421,16 +431,62 @@ const PatientProfile = () => {
     }
     const fetchKeyInfo = async () => {
       setIsLoadingAnalysis(true);
-      const res = await getPatientKeyInfoAPI(patientId);
-      if (res && res.success !== false) {
-        const payload = res?.data ?? res;
-        setKeyInfo(payload);
-        // Extract source PDF URL for the Evidence Panel
-        const sf = payload?.source_file ?? res?.source_file ?? null;
-        if (sf) setSourceFile(sf);
+      try {
+        const res = await getPatientKeyInfoAPI(patientId);
+
+        // ── 401 / unauthenticated ──
+        const is401 =
+          res?.message?.toLowerCase().includes('unauthenticated') ||
+          res?.message?.includes('401');
+        if (is401) {
+          console.error('[keyInfo] unauthenticated:', res.message);
+          setIsLoadingAnalysis(false);
+          return;
+        }
+
+        // ── Explicit failure or missing data ──
+        if (!res || res.success === false || !res.data) {
+          console.error('[keyInfo] fetch failed:', res?.message);
+          setIsLoadingAnalysis(false);
+          return;
+        }
+
+        const data = res.data;
+
+        // ── still_processing ──
+        const stillProcessing = data.still_processing === true;
+        setKeyInfoStillProcessing(stillProcessing);
+        if (stillProcessing) {
+          console.log('[keyInfo] still_processing=true — showing partial data if available');
+        }
+
+        // ── OCR source files (used by Evidence Panel) ──
+        const ocrFiles = Array.isArray(data.ocr_files) ? data.ocr_files : [];
+        setKeyInfoOcrFiles(ocrFiles);
+        if (ocrFiles.length > 0) setSourceFile(ocrFiles[0]);
+
+        // ── Normalize key_points → { high, medium, low } ──
+        // Map is_ai_generated → is_manual so existing UI renders without changes.
+        const normalizeAlerts = (arr) =>
+          Array.isArray(arr)
+            ? arr.map((kp) => ({
+                ...kp,
+                // Preserve is_ai_generated on the object; expose as is_manual for UI
+                is_manual: kp.is_ai_generated ?? kp.is_manual ?? '',
+              }))
+            : [];
+
+        const rawKeyPoints = data.key_points ?? {};
+        const normalized = {
+          high:   normalizeAlerts(rawKeyPoints.high),
+          medium: normalizeAlerts(rawKeyPoints.medium),
+          low:    normalizeAlerts(rawKeyPoints.low),
+        };
+
+        setKeyInfo(normalized);
         setKeyInfoLoadedFor(patientId);
-      } else {
-        console.error("[keyInfo] fetch failed:", res?.message);
+      } catch (err) {
+        console.error('[keyInfo] unexpected error:', err);
       }
       setIsLoadingAnalysis(false);
     };
@@ -898,161 +954,56 @@ const PatientProfile = () => {
   const fetchDecisionSupport = async () => {
     if (!patientId) return;
 
-    // Guard to prevent duplicate clicks while already loading/generating
-    if (isGeneratingDecisionSupport || decisionSupportLoading) return;
+    if (decisionSupportLoading) return;
 
     setDecisionSupportLoading(true);
     setDecisionSupportError(null);
 
+    let attempts = 0;
+    const maxAttempts = 15;
+
     try {
-      // 1) First call the normal Decision Support endpoint directly
-      let dsRes = await getDecisionSupportAPI(patientId);
-
-      const is401 =
-        dsRes?.message?.toLowerCase().includes("unauthenticated") ||
-        dsRes?.message?.includes("401");
-      if (is401) {
-        setDecisionSupportError("401");
-        setDecisionSupportLoading(false);
-        navigate("/login");
-        return;
-      }
-
-      let dataArr = Array.isArray(dsRes?.data) ? dsRes.data : [];
-
-      // If it returns real Decision Support data: show it normally, stop there.
-      if (dataArr.length > 0) {
-        setDecisionSupport(dataArr);
-        setDecisionSupportLoadedFor(patientId);
-        setDecisionSupportLoading(false);
-        return;
-      }
-
-      // If this endpoint does NOT return data / no usable data:
-      // Assess eligibility for auto-generation using current plan
-      if (!canGenerateDecisionSupportNow) {
-        // Doctor is still on a plan that DOES NOT allow Decision Support => show locker promo UI
-        setDecisionSupport([]);
-        setDecisionSupportLoadedFor(patientId);
-        setDecisionSupportLoading(false);
-        return;
-      }
-
-      // Current plan DOES allow it, but we have NO data! (Legacy Edge Case)
-      // Guard against double triggers
-      if (hasTriggeredDecisionSupportGeneration.current) {
-        setDecisionSupport([]);
-        setDecisionSupportLoadedFor(patientId);
-        setDecisionSupportLoading(false);
-        return;
-      }
-
-      // We are officially starting the regeneration flow
-      hasTriggeredDecisionSupportGeneration.current = true;
-      setIsGeneratingDecisionSupport(true);
-
-      // 2) Call: GET /api/patients/{patientId} ("Get Pre-Filled Patient Data for Editing")
-      const fetchRes = await getPatientForEditAPI(patientId);
-      if (!fetchRes?.success)
-        throw new Error(
-          fetchRes?.message || "Failed to fetch patient data for generation",
-        );
-
-      const d = fetchRes.data;
-      const pi = d?.personal_info || {};
-      const mh = d?.medical_history || {};
-
-      // 3) Build the SAME payload used by Edit File / Save Changes
-      const apiFormData = new FormData();
-      apiFormData.append("_method", "PUT");
-
-      apiFormData.append("name", pi.name || "");
-      if (pi.email) apiFormData.append("email", pi.email);
-      if (pi.phone) apiFormData.append("phone", pi.phone);
-      if (pi.age != null) apiFormData.append("age", pi.age);
-      if (pi.gender) apiFormData.append("gender", pi.gender);
-      if (pi.national_id) apiFormData.append("national_id", pi.national_id);
-
-      apiFormData.append("is_smoker", mh.is_smoker ? "1" : "0");
-      apiFormData.append(
-        "previous_surgeries",
-        mh.previous_surgeries ? "1" : "0",
-      );
-      if (mh.previous_surgeries) {
-        apiFormData.append(
-          "previous_surgeries_name",
-          mh.previous_surgeries_name || "",
-        );
-      }
-
-      if (
-        Array.isArray(mh.chronic_diseases) &&
-        mh.chronic_diseases.length > 0
-      ) {
-        mh.chronic_diseases.forEach((disease) => {
-          apiFormData.append("chronic_diseases[]", disease);
-        });
-      }
-
-      apiFormData.append("medications", mh.medications || "");
-      apiFormData.append("allergies", mh.allergies || "");
-      apiFormData.append("family_history", mh.family_history || "");
-      apiFormData.append("current_complaint", mh.current_complaint || "");
-
-      // Preserve existing AI outputs so backend doesn't wipe them
-      if (mh.ai_summary || d.ai_summary) {
-        apiFormData.append("ai_summary", mh.ai_summary || d.ai_summary);
-      }
-      if (mh.smart_summary || d.smart_summary) {
-        apiFormData.append(
-          "smart_summary",
-          mh.smart_summary || d.smart_summary,
-        );
-      }
-      if (mh.key_points || d.key_points) {
-        const kp = mh.key_points || d.key_points;
-        apiFormData.append(
-          "key_points",
-          typeof kp === "string" ? kp : JSON.stringify(kp),
-        );
-      }
-      if (mh.key_important_information || d.key_important_information) {
-        const ki = mh.key_important_information || d.key_important_information;
-        apiFormData.append(
-          "key_important_information",
-          typeof ki === "string" ? ki : JSON.stringify(ki),
-        );
-      }
-
-      // 4) Call: PUT /api/patients/{patientId} ("Update Patient Data")
-      await updatePatientAPI(patientId, apiFormData);
-
-      // 5) Poll /api/patients/{patientId}/decision-support until data appears (max ~40 seconds)
-      let finalDataArr = [];
-      let attempts = 0;
-      const maxAttempts = 10;
-
       while (attempts < maxAttempts) {
         attempts++;
-        const retryRes = await getDecisionSupportAPI(patientId);
-        if (
-          retryRes &&
-          retryRes.success &&
-          Array.isArray(retryRes.data) &&
-          retryRes.data.length > 0
-        ) {
-          finalDataArr = retryRes.data;
-          break; // Data has successfully hydrated!
+        const dsRes = await getDecisionSupportAPI(patientId);
+
+        const is401 =
+          dsRes?.message?.toLowerCase().includes("unauthenticated") ||
+          dsRes?.message?.includes("401");
+        if (is401) {
+          setDecisionSupportError("401");
+          setDecisionSupportLoading(false);
+          navigate("/login");
+          return;
         }
-        // Wait 4 seconds before polling again
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+
+        if (dsRes?.success === false) {
+           setDecisionSupportError(dsRes?.message || "An error occurred while fetching decision support information.");
+           setDecisionSupportLoading(false);
+           return;
+        }
+
+        const stillProcessing = dsRes?.data?.still_processing === true;
+        const decisions = Array.isArray(dsRes?.data?.decisions) ? dsRes.data.decisions : [];
+
+        if (stillProcessing) {
+          // Wait 4 seconds before polling again
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+          continue;
+        }
+
+        // Processing is complete
+        setDecisionSupport(decisions);
+        setDecisionSupportLoadedFor(patientId);
+        setDecisionSupportLoading(false);
+        return;
       }
 
-      setDecisionSupport(finalDataArr);
-      setDecisionSupportLoadedFor(patientId);
+      // If we exit loop without success
+      setDecisionSupportError("Timeout while waiting for decision support.");
     } catch (err) {
       console.error("[decision-support-flow] exception:", err);
-      setDecisionSupportError("Network error or generation failed.");
+      setDecisionSupportError("Network error. Please check your connection.");
     } finally {
       setIsGeneratingDecisionSupport(false);
       setDecisionSupportLoading(false);
@@ -1081,22 +1032,66 @@ const PatientProfile = () => {
     }
   };
 
-  // ── Fetch Comparative Analysis from backend ──
   const fetchComparativeAnalysis = async () => {
     if (!patientId) return;
+    if (comparativeLoading) return;
+    
     setComparativeLoading(true);
     setComparativeError(null);
+
+    let attempts = 0;
+    const maxAttempts = 15;
+
     try {
-      const res = await getComparativeAnalysisAPI(patientId);
-      console.log("[comparative-analysis] response:", res);
-      if (res && res.success) {
-        setComparativeData(Array.isArray(res.data) ? res.data : []);
+      while (attempts < maxAttempts) {
+        attempts++;
+        const res = await getComparativeAnalysisAPI(patientId);
+        console.log("[comparative-analysis] response:", res);
+
+        const is401 =
+          res?.message?.toLowerCase().includes("unauthenticated") ||
+          res?.message?.includes("401");
+        if (is401) {
+          setComparativeError("401");
+          setComparativeLoading(false);
+          navigate("/login");
+          return;
+        }
+
+        if (res?.success === false) {
+           setComparativeError(res?.message || "An error occurred while fetching comparative analysis.");
+           setComparativeLoading(false);
+           return;
+        }
+
+        const stillProcessing = res?.data?.still_processing === true;
+        const analysis = Array.isArray(res?.data?.analysis) ? res.data.analysis : [];
+
+        if (stillProcessing) {
+          // Keep existing loading state true, wait 4 seconds before polling again
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+          continue;
+        }
+
+        // If AI extraction failed but historical data is present, we just render the historical data.
+        // If analysis is empty, it will naturally render the existing empty state.
+        
+        // "No historical data found response: data: null"
+        if (res?.data === null && res?.success === true) {
+            setComparativeData([]);
+            setComparativeLoadedFor(patientId);
+            setComparativeLoading(false);
+            return;
+        }
+
+        // Processing is complete
+        setComparativeData(analysis);
         setComparativeLoadedFor(patientId);
-      } else {
-        setComparativeError(
-          res?.message || "Failed to load comparative analysis.",
-        );
+        setComparativeLoading(false);
+        return;
       }
+
+      setComparativeError("Timeout while waiting for comparative analysis.");
     } catch (err) {
       console.error("[comparative-analysis] exception:", err);
       setComparativeError("Network error. Please check your connection.");
@@ -1738,7 +1733,7 @@ const PatientProfile = () => {
 
 
                 onClick={() => {
-                  navigate(`/edit-patient/${patientId}`);
+                  navigate(`/edit-patient/${patientId}`, { state: { patientData: overviewData } });
                 }}
               >
                 Edit File
