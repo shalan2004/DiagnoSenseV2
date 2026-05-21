@@ -17,7 +17,6 @@ const apiCall = async (endpoint, options = {}) => {
     return inflightRequests.get(key);
   }
 
-  // ↓ Extract skipAuthClear before passing options to fetch
   const { skipAuthClear, ...fetchOptions } = options;
 
   const executeCall = async () => {
@@ -45,7 +44,6 @@ const apiCall = async (endpoint, options = {}) => {
       const data = await response.json();
 
       if (!response.ok) {
-        // ↓ THE FIX: only clear auth if skipAuthClear is NOT set
         if (response.status === 401 && !skipAuthClear) {
           deleteCookie('user_token');
           deleteCookie('user');
@@ -149,29 +147,58 @@ export const logoutAPI = async (type = "doctor") => {
 };
 
 
-export const forgetPasswordAPI = async (identity) => {
-  return await apiCall('/api/forget-password/doctor', {
+export const forgetPasswordAPI = async (contact) => {
+  return await apiCall('/api/v1/auth/forget-password/doctor', {
     method: 'POST',
-    body: JSON.stringify({ identity }),
+    body: JSON.stringify({ contact }),
   });
 };
 
-export const verifyOTPForResetAPI = async (identity, otp) => {
-  return await apiCall('/api/verify-otp/doctor', {
+export const verifyOTPForResetAPI = async (contact, otp) => {
+  return await apiCall('/api/v1/auth/verify-otp/doctor', {
     method: 'POST',
-    body: JSON.stringify({ identity, otp }),
+    body: JSON.stringify({ contact, otp }),
   });
 };
 
 export const resetPasswordAPI = async (reset_token, password, password_confirmation) => {
-  return await apiCall('/api/reset-password/doctor', {
-    method: 'POST',
-    body: JSON.stringify({
-      reset_token,
-      password,
-      password_confirmation,
-    }),
-  });
+  try {
+    const params = new URLSearchParams();
+    params.append('password', password);
+    params.append('password_confirmation', password_confirmation);
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password/doctor`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        'Authorization': `Bearer ${reset_token}`,
+      },
+      body: params.toString(),
+    });
+
+    const data = await response.json();
+    console.log('[resetPasswordAPI] status:', response.status);
+    console.log('[resetPasswordAPI] response data:', data);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.message || 'Something went wrong',
+        errors: data.data || data.errors || null,
+      };
+    }
+
+    return data;
+
+  } catch (error) {
+    console.error('[resetPasswordAPI] network error:', error);
+    return {
+      success: false,
+      message: 'Network error. Please check your connection.',
+    };
+  }
 };
 
 const FRONTEND_CALLBACK_URL = 'http://localhost:5173/auth/google/callback';
@@ -229,7 +256,7 @@ export const verifyOTPAPI = async (identity, otp) => {
   return await apiCall('/api/v1/auth/verify-contact', {
     method: 'POST',
     body: JSON.stringify({ otp }),
-        skipAuthClear: true,
+    skipAuthClear: true,
 
   });
 };
@@ -238,7 +265,7 @@ export const resendOTPAPI = async () => {
 
   return await apiCall('/api/v1/auth/resend-otp', {
     method: 'GET',
-        skipAuthClear: true,
+    skipAuthClear: true,
 
   });
 };
@@ -306,7 +333,7 @@ export const getPatientAnalysisAPI = async (patientId) => {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
-      console.error("Non-JSON response received:", text); 
+      console.error("Non-JSON response received:", text);
       return {
         success: false,
         message: 'Server returned an unexpected format (HTML). Check console.',
@@ -354,12 +381,10 @@ export const getPatientsAPI = async ({ status, search, page } = {}) => {
     params.append('search', search.trim());
   }
 
-  // Only append page when explicitly navigating beyond page 1
   if (page && page > 1) {
     params.append('page', page);
   }
 
-  // Do NOT send per_page — backend uses its own default
 
   const queryString = params.toString();
   const endpoint = queryString
@@ -429,7 +454,7 @@ export const addPatientAPI = async (formData) => {
       localStorage.setItem('current_patient_id', patientId);
     }
 
-    console.log("raw API data:", data); 
+    console.log("raw API data:", data);
     console.log("extracted patientId:", patientId);
 
     return {
@@ -737,7 +762,7 @@ export const updatePatientAPI = async (patientId, formData) => {
   const token = getCookie('user_token');
   try {
     const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
-      method: 'POST', 
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -935,11 +960,11 @@ export const sendSupportAPI = async ({ category, urgency, message, name, attachm
   formData.append('category', category);
   formData.append('urgency', urgency);
   formData.append('message', message);
-  
+
   if (name && name.trim()) {
     formData.append('name', name.trim());
   }
-  
+
   if (attachment) {
     formData.append('attachment', attachment);
   }

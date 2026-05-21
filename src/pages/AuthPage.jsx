@@ -31,11 +31,11 @@ const AuthPage = () => {
   }, [resetToken]);
 
   useEffect(() => {
-  if (location.state?.openForget) {
-    setCurrentView("forget");
-    window.history.replaceState({}, document.title);
-  }
-}, [location.state]);
+    if (location.state?.openForget) {
+      setCurrentView("forget");
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -89,7 +89,7 @@ const AuthPage = () => {
       case "forget-otp":
         return (
           <OTPVerification
-            identity={userIdentity}
+            contact={userIdentity}
             mode="forget_password"
             onVerifySuccess={(token) => {
               setResetToken(token);
@@ -108,7 +108,7 @@ const AuthPage = () => {
       case "otp":
         return (
           <OTPVerification
-            identity={userIdentity}
+            contact={userIdentity}
             mode="email_verification"
             onVerifySuccess={() => navigate("/dashboard")}
           />

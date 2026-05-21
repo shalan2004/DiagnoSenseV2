@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   verifyOTPAPI,
   verifyOTPForResetAPI,
@@ -7,8 +7,17 @@ import {
 } from "./mockAPI";
 import { getCookie } from "./cookieUtils.js";
 
+
+const COUNTDOWN_SECONDS = 10 * 60;
+
+const formatTime = (seconds) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+
 const OTPVerification = ({
-  identity,
+  contact,
   onVerifySuccess,
   onSessionExpired,
   mode = "email_verification",
@@ -19,16 +28,34 @@ const OTPVerification = ({
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [timeLeft, setTimeLeft] = useState(COUNTDOWN_SECONDS);
+  const intervalRef = useRef(null);
 
-    useEffect(() => {
+
+  useEffect(() => {
+    setTimeLeft(COUNTDOWN_SECONDS);
+
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalRef.current);
+  }, [mode]);
+  useEffect(() => {
     if (mode === "email_verification") {
-      const token = getCookie('user_token');
+      const token = getCookie("user_token");
       if (!token) {
-        console.error('[OTPVerification] No token on mount — redirecting');
+        console.error("[OTPVerification] No token on mount — redirecting");
         if (onSessionExpired) {
           onSessionExpired();
         } else {
-          setError('Session expired. Please register again.');
+          setError("Session expired. Please register again.");
         }
       }
     }
@@ -37,7 +64,7 @@ const OTPVerification = ({
   const content = {
     email_verification: {
       title: "Verify your Email",
-      subtitle: "Enter the code sent to your email:",
+      subtitle: "Enter the code sent to:",
       buttonLabel: "Verify Account",
     },
     forget_password: {
@@ -57,14 +84,15 @@ const OTPVerification = ({
     let result;
 
     if (mode === "email_verification") {
-      result = await verifyOTPAPI(identity, otp);
+      result = await verifyOTPAPI(contact, otp);
       if (result.success) {
         onVerifySuccess(otp);
       } else {
         setError(result.message);
       }
     } else if (mode === "forget_password") {
-      result = await verifyOTPForResetAPI(identity, otp);
+      result = await verifyOTPForResetAPI(contact, otp);
+      console.log("OTP Verification Result:", result);
       if (result.success) {
         const reset_token = result.data.reset_token;
         onVerifySuccess(reset_token);
@@ -72,7 +100,6 @@ const OTPVerification = ({
         setError(result.message);
       }
     }
-
 
     setIsLoading(false);
   };
@@ -85,10 +112,8 @@ const OTPVerification = ({
 
     let result;
     if (mode === "forget_password") {
-
-      result = await forgetPasswordAPI(identity);
+      result = await forgetPasswordAPI(contact);
     } else {
-
       result = await resendOTPAPI();
     }
 
@@ -108,7 +133,7 @@ const OTPVerification = ({
       <div className="form-header">
         <h2>{title}</h2>
         <p>
-          {subtitle} <strong>{identity}</strong>
+          {subtitle} <strong>{contact}</strong>
         </p>
       </div>
 
@@ -159,24 +184,45 @@ const OTPVerification = ({
           {isLoading ? "Verifying..." : buttonLabel}
         </button>
       </form>
- <div
-        className="form-options"
-        style={{ justifyContent: "center", marginTop: "15px" }}
-      >
-        <p>
-          Didn't receive code?
-          <a
-            href="#"
-            onClick={handleResendOTP}
-            style={{ pointerEvents: resendLoading ? "none" : "auto" }}
+    {timeLeft > 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "15px",
+            color: "var(--text-muted, #6b7280)",
+            fontSize: "14px",
+          }}
+        >
+          Resend code available in{" "}
+          <span
+            style={{
+              fontWeight: "600",
+              color:
+                timeLeft <= 60
+                  ? "#e74c3c"
+                  : "var(--primary, #3b82f6)",
+            }}
           >
-            {" "}
-            {resendLoading ? "Resending..." : "Resend"}
-          </a>
-        </p>
-      </div>
-
-
+            {formatTime(timeLeft)}
+          </span>
+        </div>
+      ) : (
+        <div
+          className="form-options"
+          style={{ justifyContent: "center", marginTop: "15px" }}
+        >
+          <p>
+            Didn't receive code?{" "}
+            <a
+              href="#"
+              onClick={handleResendOTP}
+              style={{ pointerEvents: resendLoading ? "none" : "auto" }}
+            >
+              {resendLoading ? "Resending..." : "Resend"}
+            </a>
+          </p>
+        </div>
+      )}
     </div>
   );
 };
