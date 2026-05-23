@@ -1,6 +1,6 @@
-// const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
+const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
-const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
+// const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
 // const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -744,7 +744,7 @@ export const updatePatientAPI = async (patientId, formData) => {
   const token = getCookie('user_token');
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/patients/${patientId}`, {
-      method: 'POST', 
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
@@ -962,8 +962,8 @@ export const sendSupportAPI = async ({ category, urgency, message, name, attachm
 };
 
 
-export const getDoctorProfileAPI = async (doctorId) => {
-  return await apiCall(`/api/doctors/${doctorId}`, {
+export const getDoctorProfileAPI = async () => {
+  return await apiCall(`/api/v1/doctors/profile/edit`, {
     method: 'GET',
   });
 };
@@ -984,8 +984,8 @@ export const changePasswordAPI = async (current_password, new_password, new_pass
 };
 
 
-export const deleteDoctorAccountAPI = async (doctorId, password, password_confirmation) => {
-  return await apiCall(`/api/doctors/${doctorId}`, {
+export const deleteDoctorAccountAPI = async (password, password_confirmation) => {
+  return await apiCall(`/api/v1/doctors/profile`, {
     method: 'DELETE',
     body: JSON.stringify({ password, password_confirmation }),
   });

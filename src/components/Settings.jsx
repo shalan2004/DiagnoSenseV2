@@ -132,7 +132,7 @@ const Settings = () => {
           const profileData = {
             fullName: actualData.name || actualData.fullName || "",
             identity:
-              actualData.identity || actualData.email || actualData.phone || "",
+              actualData.contact || actualData.email || actualData.phone || "",
             specialty: rawSpecialty === "N/A" ? "" : rawSpecialty,
           };
 
