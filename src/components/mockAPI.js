@@ -1,8 +1,8 @@
 // const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
-// const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
+const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
-const API_BASE_URL = 'http://127.0.0.1:8000';
+// const API_BASE_URL = 'http://127.0.0.1:8000';
 
 import { getCookie, setCookie, deleteCookie, setJsonCookie } from './cookieUtils';
 
@@ -785,7 +785,7 @@ export const chargeWalletAPI = async (balance) => {
   const success_url = `${window.location.origin}/close-popup.html`;
   const cancel_url = `${window.location.origin}/close-popup.html`;
 
-  return await apiCall('/api/wallet/charge', {
+  return await apiCall('/api/v1/wallets/charge', {
     method: 'POST',
     body: JSON.stringify({ balance, success_url, cancel_url }),
   });
@@ -797,7 +797,7 @@ export const chargeWalletAPI = async (balance) => {
  * Fetches the wallet transaction history.
  */
 export const getTransactionsAPI = async () => {
-  return await apiCall('/api/transactions', {
+  return await apiCall('/api/v1/wallets/transactions', {
     method: 'GET',
   });
 };
@@ -970,14 +970,14 @@ export const getDoctorProfileAPI = async (doctorId) => {
 
 
 export const updateDoctorProfileAPI = async (doctorId, { name, specialization }) => {
-  return await apiCall(`/api/doctors/${doctorId}`, {
-    method: 'PUT',
+  return await apiCall(`/api/v1/doctors/profile`, {
+    method: 'PATCH',
     body: JSON.stringify({ name, specialization }),
   });
 };
 
 export const changePasswordAPI = async (current_password, new_password, new_password_confirmation) => {
-  return await apiCall('/api/change-password', {
+  return await apiCall('api/v1/doctors/change-password', {
     method: 'PATCH',
     body: JSON.stringify({ current_password, new_password, new_password_confirmation }),
   });

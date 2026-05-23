@@ -50,19 +50,21 @@ function Subscription() {
       : "—";
   const isPayPerUse = subscriptionData?.billing_mode === "pay_per_use";
   const isSubscription = subscriptionData?.billing_mode === "subscription";
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || location.state?.tab || "plans",
+  );
   const [transactions, setTransactions] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isCancelledLocally, setIsCancelledLocally] = useState(false);
-  // Tracks if transactions have been loaded at least once for the billing tab
-  const transactionsFetchedRef = useRef(false);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = React.useCallback(async (force = false) => {
     // ── Cache check ──
-    const cached = getCache("subscription_transactions");
-    if (cached) {
-      setTransactions(cached);
-      setIsLoadingHistory(false);
-      return;
+    if (!force) {
+      const cached = getCache("subscription_transactions");
+      if (cached) {
+        setTransactions(cached);
+        setIsLoadingHistory(false);
+        return;
+      }
     }
 
     setIsLoadingHistory(true);
@@ -75,7 +77,7 @@ function Subscription() {
       // credits are managed globally via context — no local state needed
     }
     setIsLoadingHistory(false);
-  };
+  }, [getCache, setCache]);
 
   // (Transaction load moved below activeTab declaration to avoid ReferenceError)
 
@@ -102,10 +104,6 @@ function Subscription() {
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
 
-  // ── Robust Closure Fallback ────────────────────────────────────────────────
-  // Stripe redirects back to this page inside the popup after payment.
-  // We post STRIPE_SUCCESS to the opener so the parent window can refresh
-  // credits, unread count, and toast — then close the popup.
   useEffect(() => {
     if (window.name === "stripe_checkout" && window.opener) {
       console.log(
@@ -133,7 +131,6 @@ function Subscription() {
         fetchAndToastLatest();
         // Invalidate transactions cache so billing tab re-fetches on next open
         window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-        transactionsFetchedRef.current = false;
       }
     };
     window.addEventListener("message", handleMessage);
@@ -150,26 +147,21 @@ function Subscription() {
       refreshCredits();
       // Invalidate transactions cache so billing tab re-fetches on next open
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-      transactionsFetchedRef.current = false;
+      if (activeTab === "billing") {
+        fetchTransactions(true);
+      }
     }
     prevUnreadCount.current = unreadCount;
-  }, [unreadCount, refreshSubscription, refreshCredits]);
+  }, [unreadCount, refreshSubscription, refreshCredits, activeTab, fetchTransactions]);
 
-  const [activeTab, setActiveTab] = useState(
-    searchParams.get("tab") || location.state?.tab || "plans",
-  );
 
-  // ── Lazy: fetch transactions only when user opens Billing & History tab ──
+
+  // ── Fetch transactions only when user opens Billing & History tab ──
   useEffect(() => {
-    if (activeTab !== "billing") return;
-    // Invalidate stale ref so re-entering the tab after a mutation re-fetches
-    if (!getCache("subscription_transactions")) {
-      transactionsFetchedRef.current = false;
+    if (activeTab === "billing") {
+      fetchTransactions(false);
     }
-    if (transactionsFetchedRef.current) return;
-    transactionsFetchedRef.current = true;
-    fetchTransactions();
-  }, [activeTab, getCache]);
+  }, [activeTab, fetchTransactions]);
 
   useEffect(() => {
     if (location.state?.tab) {
@@ -292,9 +284,10 @@ function Subscription() {
       setSelectedPlanId(null);
       refreshSubscription();
       refreshCredits();
-      // Invalidate transactions cache so billing tab re-fetches on next open
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-      transactionsFetchedRef.current = false;
+      if (activeTab === "billing") {
+        fetchTransactions(true);
+      }
       fetchAndToastLatest();
     }
   };
@@ -328,9 +321,10 @@ function Subscription() {
         setSelectedPlanId("Pay-per-use");
         refreshSubscription();
         refreshCredits();
-        // Invalidate transactions cache so billing tab re-fetches on next open
         window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-        transactionsFetchedRef.current = false;
+        if (activeTab === "billing") {
+          fetchTransactions(true);
+        }
         fetchAndToastLatest();
       }
       return;
@@ -350,9 +344,10 @@ function Subscription() {
       setSelectedPlanId(planId);
       refreshSubscription();
       refreshCredits();
-      // Invalidate transactions cache so billing tab re-fetches on next open
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-      transactionsFetchedRef.current = false;
+      if (activeTab === "billing") {
+        fetchTransactions(true);
+      }
       fetchAndToastLatest();
     }
   };
@@ -405,9 +400,26 @@ function Subscription() {
           result.data.url));
 
     if (paymentUrl) {
-      window.open(paymentUrl, "stripe_checkout", "width=600,height=700");
-      // Invalidate transaction cache so it re-fetches after wallet top-up
+      const popup = window.open(paymentUrl, "stripe_checkout", "width=600,height=700");
+      
+      // Clear cache immediately
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
+
+      // Poll to detect when the payment popup is closed by the user
+      const popupTimer = setInterval(() => {
+        if (!popup || popup.closed || popup.closed === undefined) {
+          clearInterval(popupTimer);
+          console.log("[Subscription] Payment popup closed. Refreshing data...");
+          
+          refreshSubscription();
+          refreshCredits();
+          
+          // Refresh transactions automatically if on billing tab
+          if (activeTab === "billing") {
+            fetchTransactions(true);
+          }
+        }
+      }, 500);
     }
 
     setChargeAmt("");
