@@ -903,13 +903,13 @@ export const getDashboardWidgets = async () => {
 };
 
 export const getDashboardStatusDistribution = async () => {
-  return await apiCall('/api/dashboard/status-distribution', {
+  return await apiCall('/api/v1/dashboard/status-distribution', {
     method: 'GET',
   });
 }
 
 export const getTopfiveDiseases = async () => {
-  return await apiCall('/api/dashboard/top-diseases', {
+  return await apiCall('/api/v1/dashboard/top-diseases', {
     method: 'GET',
   });
 }
