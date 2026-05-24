@@ -868,13 +868,12 @@ export const getUnreadNotificationsCountAPI = async () => {
 };
 
 /**
- * PATCH /api/v1/notifications/notification/read
+ * PATCH /api/v1/notifications/{notification}/read
  * Marks a single notification as read.
  */
 export const markNotificationAsReadAPI = async (id) => {
-  return await apiCall('/api/v1/notifications/notification/read', {
+  return await apiCall(`/api/v1/notifications/${id}/read`, {
     method: 'PATCH',
-    body: JSON.stringify({ notification_id: id }),
   });
 };
 
