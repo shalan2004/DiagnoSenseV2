@@ -531,8 +531,8 @@ export const getDecisionSupportAPI = async (patientId) => {
 };
 
 
-export const getPatientActivitiesAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/activities`, {
+export const getPatientActivitiesAPI = async (patientId, page = 1) => {
+  return await apiCall(`/api/v1/patients/${patientId}/activities?page=${page}&limit=10`, {
     method: 'GET',
   });
 };

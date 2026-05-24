@@ -99,6 +99,8 @@ const PatientProfile = () => {
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState(null);
   const [activitiesLoadedFor, setActivitiesLoadedFor] = useState(null);
+  const [activitiesCurrentPage, setActivitiesCurrentPage] = useState(1);
+  const [activitiesLastPage, setActivitiesLastPage] = useState(1);
 
   // ── Comparative Analysis API state ──
   const [comparativeData, setComparativeData] = useState([]);
@@ -937,6 +939,8 @@ const PatientProfile = () => {
     setActivities([]);
     setActivitiesError(null);
     setActivitiesLoadedFor(null);
+    setActivitiesCurrentPage(1);
+    setActivitiesLastPage(1);
   }, [patientId]);
 
   // ── Reset Comparative Analysis when patient changes ──
@@ -1011,16 +1015,35 @@ const PatientProfile = () => {
   };
 
   // ── Fetch Activity Log from backend ──
-  const fetchActivities = async () => {
+  const fetchActivities = async (page = 1) => {
     if (!patientId) return;
     setActivitiesLoading(true);
     setActivitiesError(null);
     try {
-      const res = await getPatientActivitiesAPI(patientId);
+      const res = await getPatientActivitiesAPI(patientId, page);
       console.log("[activity-log] response:", res);
       if (res && res.success) {
-        setActivities(Array.isArray(res.data) ? res.data : []);
+        let items = [];
+        let meta = null;
+        if (res.data && res.data.data) {
+          items = Array.isArray(res.data.data) ? res.data.data : [];
+          meta = res.data.meta || res.meta || null;
+        } else {
+          items = Array.isArray(res.data) ? res.data : [];
+        }
+        setActivities(items);
         setActivitiesLoadedFor(patientId);
+
+        if (meta) {
+          setActivitiesCurrentPage(Number(meta.current_page || page));
+          setActivitiesLastPage(Number(meta.last_page || 1));
+        } else if (res.data && res.data.current_page) {
+          setActivitiesCurrentPage(Number(res.data.current_page));
+          setActivitiesLastPage(Number(res.data.last_page || 1));
+        } else {
+          setActivitiesCurrentPage(page);
+          setActivitiesLastPage(1);
+        }
       } else {
         setActivitiesError(res?.message || "Failed to load activity log.");
       }
@@ -1116,7 +1139,7 @@ const PatientProfile = () => {
       patientId &&
       activitiesLoadedFor !== patientId
     ) {
-      fetchActivities();
+      fetchActivities(activitiesCurrentPage);
     }
     if (
       tabId === "comparative" &&
@@ -5404,22 +5427,85 @@ const PatientProfile = () => {
 
               {/* Data */}
               {!activitiesError && activities.length > 0 && (
-                <div
-                  className="activity-timeline"
-                  style={{
-                    opacity: activitiesLoading ? 0.6 : 1,
-                    transition: "opacity 0.2s",
-                  }}
-                >
-                  {activities.map((activity) => (
-                    <div className="activity-item" key={activity.id}>
-                      <div className="activity-text">{activity.message}</div>
-                      <div className="activity-time">
-                        {activity.time_ago || activity.created_at}
+                <>
+                  <div
+                    className="activity-timeline"
+                    style={{
+                      opacity: activitiesLoading ? 0.6 : 1,
+                      transition: "opacity 0.2s",
+                    }}
+                  >
+                    {activities.map((activity) => (
+                      <div className="activity-item" key={activity.id}>
+                        <div className="activity-text">{activity.message}</div>
+                        <div className="activity-time">
+                          {activity.time_ago || activity.created_at}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+
+                  {(() => {
+                    const PAGINATION_GROUP_SIZE = 10;
+                    const currentGroup = Math.floor((activitiesCurrentPage - 1) / PAGINATION_GROUP_SIZE);
+                    const startPage = currentGroup * PAGINATION_GROUP_SIZE + 1;
+                    const endPage = Math.min(startPage + PAGINATION_GROUP_SIZE - 1, activitiesLastPage);
+
+                    return activitiesLastPage > 1 && (
+                      <div className="pagination" style={{ marginTop: '24px', justifyContent: 'center' }}>
+                        <button
+                          disabled={activitiesCurrentPage <= 1 || activitiesLoading}
+                          onClick={() => fetchActivities(Math.max(1, activitiesCurrentPage - 1))}
+                          title="Previous Page"
+                        >
+                          ◂ Prev
+                        </button>
+
+                        {startPage > 1 && (
+                          <button
+                            disabled={activitiesLoading}
+                            onClick={() => fetchActivities(startPage - 1)}
+                            title="Previous 10 Pages"
+                          >
+                            «
+                          </button>
+                        )}
+
+                        {Array.from(
+                          { length: endPage - startPage + 1 },
+                          (_, i) => startPage + i,
+                        ).map((page) => (
+                          <button
+                            key={page}
+                            className={activitiesCurrentPage === page ? "active" : ""}
+                            disabled={activitiesLoading}
+                            onClick={() => fetchActivities(page)}
+                          >
+                            {page}
+                          </button>
+                        ))}
+
+                        {endPage < activitiesLastPage && (
+                          <button
+                            disabled={activitiesLoading}
+                            onClick={() => fetchActivities(endPage + 1)}
+                            title="Next 10 Pages"
+                          >
+                            »
+                          </button>
+                        )}
+
+                        <button
+                          disabled={activitiesCurrentPage >= activitiesLastPage || activitiesLoading}
+                          onClick={() => fetchActivities(Math.min(activitiesLastPage, activitiesCurrentPage + 1))}
+                          title="Next Page"
+                        >
+                          Next ▸
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </div>
           </div>
