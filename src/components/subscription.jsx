@@ -48,7 +48,9 @@ function Subscription() {
     subscriptionData?.wallet_balance != null
       ? subscriptionData.wallet_balance.toLocaleString()
       : "—";
-  const isPayPerUse = subscriptionData?.billing_mode === "pay_per_use";
+  const isPayPerUse =
+    subscriptionData?.billing_mode === "pay_per_use" ||
+    subscriptionData?.billing_mode === "pay-per-use";
   const isSubscription = subscriptionData?.billing_mode === "subscription";
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || location.state?.tab || "plans",
@@ -56,28 +58,31 @@ function Subscription() {
   const [transactions, setTransactions] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isCancelledLocally, setIsCancelledLocally] = useState(false);
-  const fetchTransactions = React.useCallback(async (force = false) => {
-    // ── Cache check ──
-    if (!force) {
-      const cached = getCache("subscription_transactions");
-      if (cached) {
-        setTransactions(cached);
-        setIsLoadingHistory(false);
-        return;
+  const fetchTransactions = React.useCallback(
+    async (force = false) => {
+      // ── Cache check ──
+      if (!force) {
+        const cached = getCache("subscription_transactions");
+        if (cached) {
+          setTransactions(cached);
+          setIsLoadingHistory(false);
+          return;
+        }
       }
-    }
 
-    setIsLoadingHistory(true);
-    const result = await getTransactionsAPI();
-    console.log("--- Transactions API Full Response ---", result);
-    if (result.success && result.data) {
-      setTransactions(result.data.transactions);
-      // ── Store to cache ──
-      setCache("subscription_transactions", result.data.transactions);
-      // credits are managed globally via context — no local state needed
-    }
-    setIsLoadingHistory(false);
-  }, [getCache, setCache]);
+      setIsLoadingHistory(true);
+      const result = await getTransactionsAPI();
+      console.log("--- Transactions API Full Response ---", result);
+      if (result.success && result.data) {
+        setTransactions(result.data.transactions);
+        // ── Store to cache ──
+        setCache("subscription_transactions", result.data.transactions);
+        // credits are managed globally via context — no local state needed
+      }
+      setIsLoadingHistory(false);
+    },
+    [getCache, setCache],
+  );
 
   // (Transaction load moved below activeTab declaration to avoid ReferenceError)
 
@@ -152,9 +157,13 @@ function Subscription() {
       }
     }
     prevUnreadCount.current = unreadCount;
-  }, [unreadCount, refreshSubscription, refreshCredits, activeTab, fetchTransactions]);
-
-
+  }, [
+    unreadCount,
+    refreshSubscription,
+    refreshCredits,
+    activeTab,
+    fetchTransactions,
+  ]);
 
   // ── Fetch transactions only when user opens Billing & History tab ──
   useEffect(() => {
@@ -177,7 +186,16 @@ function Subscription() {
   const [plans, setPlans] = useState([]);
   const [isPlansLoading, setIsPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState(null);
-  const [selectedPlanId, setSelectedPlanId] = useState(null);
+  const [selectedPlanId, setSelectedPlanId] = useState(() => {
+    return localStorage.getItem("selectedPlanId") || null;
+  });
+  useEffect(() => {
+    if (selectedPlanId != null) {
+      localStorage.setItem("selectedPlanId", selectedPlanId);
+    } else {
+      localStorage.removeItem("selectedPlanId");
+    }
+  }, [selectedPlanId]);
 
   useEffect(() => {
     if (isSubLoading) return;
@@ -218,6 +236,8 @@ function Subscription() {
 
     if (backendPlanId != null) {
       setSelectedPlanId(backendPlanId);
+    } else if (!hasActivePlan) {
+      setSelectedPlanId(null);
     }
   }, [
     isSubLoading,
@@ -233,6 +253,40 @@ function Subscription() {
     useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   const [subscribingPlanId, setSubscribingPlanId] = useState(null);
+
+  // Toast notification state
+  const [toast, setToast] = useState({
+    isOpen: false,
+    message: "",
+    isSuccess: false,
+  });
+  const toastTimerRef = useRef(null);
+
+  // Read More modal state
+  const [readMoreModal, setReadMoreModal] = useState({
+    isOpen: false,
+    message: "",
+  });
+
+  const TOAST_TRUNCATE_LENGTH = 80;
+
+  const showToast = (message, isSuccess) => {
+    // Clear any existing timer so stacked calls reset the countdown
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+
+    setToast({ isOpen: true, message, isSuccess });
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast({ isOpen: false, message: "", isSuccess: false });
+    }, 10000);
+  };
+
+  const closeToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ isOpen: false, message: "", isSuccess: false });
+  };
+
+  // Rename all showResultModal calls to showToast — done in Steps 2 & 3 below
 
   useEffect(() => {
     let isMounted = true;
@@ -282,6 +336,7 @@ function Subscription() {
     if (apiResult.success) {
       setIsCancelledLocally(true);
       setSelectedPlanId(null);
+      localStorage.removeItem("selectedPlanId");
       refreshSubscription();
       refreshCredits();
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
@@ -316,11 +371,22 @@ function Subscription() {
       setSubscribingPlanId(null);
       setPendingPlan(null);
 
+      //  showResultModal(
+      //   result.message || (result.success ? "Successfully switched to Pay-Per-Use!" : "Failed to switch to Pay-Per-Use."),
+      //   result.success
+      // );
+
+      if (!result.success) {
+        showToast(result.message || "Failed to switch to Pay-Per-Use.", false);
+      }
+
       if (result.success) {
         setIsCancelledLocally(false);
         setSelectedPlanId("Pay-per-use");
-        refreshSubscription();
-        refreshCredits();
+        setTimeout(() => {
+          refreshSubscription();
+          refreshCredits();
+        }, 1500);
         window.dispatchEvent(new CustomEvent("subscriptionChanged"));
         if (activeTab === "billing") {
           fetchTransactions(true);
@@ -339,11 +405,22 @@ function Subscription() {
     setSubscribingPlanId(null);
     setPendingPlan(null);
 
+    // showResultModal(
+    //   result.message || (result.success ? "Successfully subscribed to the plan!" : "Failed to subscribe to the plan."),
+    //   result.success
+    // );
+
+    if (!result.success) {
+      showToast(result.message || "Failed to subscribe to the plan.", false);
+    }
+
     if (result.success) {
       setIsCancelledLocally(false);
       setSelectedPlanId(planId);
-      refreshSubscription();
-      refreshCredits();
+      setTimeout(() => {
+        refreshSubscription();
+        refreshCredits();
+      }, 1500);
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
       if (activeTab === "billing") {
         fetchTransactions(true);
@@ -400,8 +477,12 @@ function Subscription() {
           result.data.url));
 
     if (paymentUrl) {
-      const popup = window.open(paymentUrl, "stripe_checkout", "width=600,height=700");
-      
+      const popup = window.open(
+        paymentUrl,
+        "stripe_checkout",
+        "width=600,height=700",
+      );
+
       // Clear cache immediately
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
 
@@ -409,11 +490,13 @@ function Subscription() {
       const popupTimer = setInterval(() => {
         if (!popup || popup.closed || popup.closed === undefined) {
           clearInterval(popupTimer);
-          console.log("[Subscription] Payment popup closed. Refreshing data...");
-          
+          console.log(
+            "[Subscription] Payment popup closed. Refreshing data...",
+          );
+
           refreshSubscription();
           refreshCredits();
-          
+
           // Refresh transactions automatically if on billing tab
           if (activeTab === "billing") {
             fetchTransactions(true);
@@ -494,6 +577,129 @@ function Subscription() {
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
             <line x1="12" y1="9" x2="12" y2="13"></line>
             <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        }
+      />
+      {/* ── Toast Notification ── */}
+      {toast.isOpen && (
+        <div
+          onClick={() =>
+            setReadMoreModal({ isOpen: true, message: toast.message })
+          }
+          style={{
+            position: "fixed",
+            top: "80px",
+            right: "24px",
+            zIndex: 99999,
+            minWidth: "300px",
+            maxWidth: "350px",
+            background: "var(--card-bg, #ffffff)",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color, #e5e7eb)",
+            padding: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            animation:
+              "0.3s ease-out 0s 1 normal forwards running slideInRight",
+            boxShadow:
+              "rgba(0, 0, 0, 0.1) 0px 10px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+            cursor: "pointer",
+          }}
+        >
+          {/* Icon */}
+          <div
+            style={{
+              flexShrink: 0,
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: toast.isSuccess
+                ? "rgba(34,197,94,0.1)"
+                : "rgba(239,68,68,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "15px",
+              marginTop: "1px",
+            }}
+          >
+            {toast.isSuccess ? "✓" : "✕"}
+          </div>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                color: "var(--text-primary, #111)",
+                marginBottom: "3px",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {toast.isSuccess ? "Success" : "Failed"}
+            </div>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                color: "var(--text-secondary, #6b7280)",
+                lineHeight: 1.45,
+                wordBreak: "break-word",
+              }}
+            >
+              {toast.message.length > TOAST_TRUNCATE_LENGTH
+                ? toast.message.slice(0, TOAST_TRUNCATE_LENGTH).trimEnd() + "…"
+                : toast.message}
+            </div>
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeToast();
+            }}
+            style={{
+              flexShrink: 0,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary, #9ca3af)",
+              fontSize: "16px",
+              lineHeight: 1,
+              padding: "2px 4px",
+              borderRadius: "4px",
+              marginTop: "-1px",
+            }}
+            aria-label="Close notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* ── Read More Modal ── */}
+      <ConfirmModal
+        isOpen={readMoreModal.isOpen}
+        onClose={() => setReadMoreModal({ isOpen: false, message: "" })}
+        onConfirm={() => setReadMoreModal({ isOpen: false, message: "" })}
+        title="Message Details"
+        description={readMoreModal.message}
+        confirmText="Ok, got it"
+        variant="primary"
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
         }
       />

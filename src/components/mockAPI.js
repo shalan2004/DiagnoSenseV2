@@ -484,7 +484,7 @@ export const getPatientOverviewAPI = async (patientId) => {
 };
 
 export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority }) => {
-  return await apiCall(`/api/patients/${patientId}/key-info`, {
+  return await apiCall(`/api/v1/patients/${patientId}/key-info`, {
     method: 'POST',
     body: JSON.stringify({ insight, priority }),
   });
@@ -807,7 +807,7 @@ export const getTransactionsAPI = async () => {
  * Returns available subscription plans.
  */
 export const getSubscriptionPlansAPI = async () => {
-  return await apiCall('/api/subscription/plans', {
+  return await apiCall('/api/v1/subscriptions/plans', {
     method: 'GET',
   });
 };
@@ -816,21 +816,21 @@ export const getSubscriptionPlansAPI = async () => {
  * POST /api/subscription/subscribe
  * Subscribes user to a specific plan.
  */
-export const subscribeToPlanAPI = async (plan_id) => {
-  return await apiCall('/api/subscription/subscribe', {
+export const subscribeToPlanAPI = async (planId) => {
+  return await apiCall(`/api/v1/subscriptions/${planId}/subscribe`, {
     method: 'POST',
-    body: JSON.stringify({ plan_id }),
+    body: JSON.stringify({ planId }),
   });
 };
 
 export const cancelSubscriptionAPI = async () => {
-  return await apiCall('/api/subscription/cancel', {
+  return await apiCall('/api/v1/subscriptions/cancel', {
     method: 'POST',
   });
 };
 
 export const subscribeToPayPerUseAPI = async () => {
-  return await apiCall('/api/subscription/pay-per-use', {
+  return await apiCall('/api/v1/subscriptions/pay-per-use', {
     method: 'POST',
   });
 };
@@ -840,7 +840,7 @@ export const subscribeToPayPerUseAPI = async () => {
  * Returns current billing mode, wallet balance, usage, and plan details.
  */
 export const getCurrentSubscriptionAPI = async () => {
-  return await apiCall('/api/subscription/current', {
+  return await apiCall('/api/v1/subscriptions/current', {
     method: 'GET',
   });
 };
