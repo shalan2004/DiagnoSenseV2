@@ -1,8 +1,8 @@
-const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
+// const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
 // const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
-// const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 import { getCookie, setCookie, deleteCookie, setJsonCookie } from './cookieUtils';
 
@@ -517,7 +517,7 @@ export const deleteKeyPointAPI = async (keyPointId) => {
  * @param {"stable"|"critical"|"under review"} status  — must match backend exactly
  */
 export const updatePatientStatusAPI = async (patientId, status) => {
-  return await apiCall(`/api/patients/${patientId}/status`, {
+  return await apiCall(`/api/v1/patients/${patientId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
@@ -531,8 +531,8 @@ export const getDecisionSupportAPI = async (patientId) => {
 };
 
 
-export const getPatientActivitiesAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/activities`, {
+export const getPatientActivitiesAPI = async (patientId, page = 1) => {
+  return await apiCall(`/api/v1/patients/${patientId}/activities?page=${page}&limit=10`, {
     method: 'GET',
   });
 };
@@ -693,7 +693,7 @@ export const getPatientNextVisitAPI = async (patientId) => {
 };
 
 export const deletePatientAPI = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}`, {
+  return await apiCall(`/api/v1/patients/${patientId}`, {
     method: 'DELETE',
   });
 };
@@ -868,13 +868,12 @@ export const getUnreadNotificationsCountAPI = async () => {
 };
 
 /**
- * PATCH /api/v1/notifications/notification/read
+ * PATCH /api/v1/notifications/{notification}/read
  * Marks a single notification as read.
  */
 export const markNotificationAsReadAPI = async (id) => {
-  return await apiCall('/api/v1/notifications/notification/read', {
+  return await apiCall(`/api/v1/notifications/${id}/read`, {
     method: 'PATCH',
-    body: JSON.stringify({ notification_id: id }),
   });
 };
 
@@ -897,19 +896,19 @@ export const clearAllNotificationsAPI = async () => {
 
 
 export const getDashboardWidgets = async () => {
-  return await apiCall('/api/dashboard/summary', {
+  return await apiCall('/api/v1/dashboard/summary', {
     method: 'GET',
   });
 };
 
 export const getDashboardStatusDistribution = async () => {
-  return await apiCall('/api/dashboard/status-distribution', {
+  return await apiCall('/api/v1/dashboard/status-distribution', {
     method: 'GET',
   });
 }
 
 export const getTopfiveDiseases = async () => {
-  return await apiCall('/api/dashboard/top-diseases', {
+  return await apiCall('/api/v1/dashboard/top-diseases', {
     method: 'GET',
   });
 }
