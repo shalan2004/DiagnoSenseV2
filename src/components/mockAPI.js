@@ -517,7 +517,7 @@ export const deleteKeyPointAPI = async (keyPointId) => {
  * @param {"stable"|"critical"|"under review"} status  — must match backend exactly
  */
 export const updatePatientStatusAPI = async (patientId, status) => {
-  return await apiCall(`/api/patients/${patientId}/status`, {
+  return await apiCall(`/api/v1/patients/${patientId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
