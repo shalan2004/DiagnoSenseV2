@@ -897,7 +897,7 @@ export const clearAllNotificationsAPI = async () => {
 
 
 export const getDashboardWidgets = async () => {
-  return await apiCall('/api/dashboard/summary', {
+  return await apiCall('/api/v1/dashboard/summary', {
     method: 'GET',
   });
 };
