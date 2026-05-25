@@ -411,7 +411,7 @@ function EvidencePanelInternal({
   const winnerPageIndexRef = useRef(-1);
 
   const rawEvidence = selectedAlert?.evidence;
-  const alertTitle = selectedAlert?.title || selectedAlert?.is_manual || "Evidence";
+  const alertTitle = selectedAlert?.title || selectedAlert?.is_ai_generated || "Evidence";
 
   const primaryEvidenceText = useMemo(() => {
     if (!rawEvidence) return "";

@@ -1,8 +1,8 @@
-const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
+// const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
 // const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
-// const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 import { getCookie, setCookie, deleteCookie, setJsonCookie } from './cookieUtils';
 
@@ -477,21 +477,21 @@ export const addPatientAPI = async (formData) => {
 };
 
 export const getPatientKeyInfoAPI = async (patientId) => {
-  return await apiCall(`/api/v1/patients/${patientId}/key-info`, { method: 'GET' });
+  return await apiCall(`/api/v1/patients/${patientId}/key-points`, { method: 'GET' });
 };
 export const getPatientOverviewAPI = async (patientId) => {
   return await apiCall(`/api/v1/patients/${patientId}/overview`, { method: 'GET' });
 };
 
 export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority }) => {
-  return await apiCall(`/api/v1/patients/${patientId}/key-info`, {
+  return await apiCall(`/api/v1/patients/${patientId}/key-points`, {
     method: 'POST',
     body: JSON.stringify({ insight, priority }),
   });
 };
 
 export const patchKeyPointAPI = async (keyPointId, { insight }) => {
-  return await apiCall(`/api/key-points/${keyPointId}`, {
+  return await apiCall(`/api/v1/key-points/${keyPointId}`, {
     method: 'PATCH',
     body: JSON.stringify({ insight }),
   });
@@ -500,7 +500,7 @@ export const deleteKeyPointAPI = async (keyPointId) => {
   const token = getCookie('user_token');
   console.log('[deleteKeyPoint] sending request — keyPointId:', keyPointId, '| token:', token);
 
-  const result = await apiCall(`/api/key-points/${keyPointId}`, {
+  const result = await apiCall(`/api/v1/key-points/${keyPointId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,

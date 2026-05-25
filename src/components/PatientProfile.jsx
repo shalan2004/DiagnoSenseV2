@@ -468,13 +468,12 @@ const PatientProfile = () => {
         if (ocrFiles.length > 0) setSourceFile(ocrFiles[0]);
 
         // ── Normalize key_points → { high, medium, low } ──
-        // Map is_ai_generated → is_manual so existing UI renders without changes.
         const normalizeAlerts = (arr) =>
           Array.isArray(arr)
             ? arr.map((kp) => ({
                 ...kp,
-                // Preserve is_ai_generated on the object; expose as is_manual for UI
-                is_manual: kp.is_ai_generated ?? kp.is_manual ?? '',
+                // Fallback to is_manual if backend is still sending old format, else use new is_ai_generated
+                is_ai_generated: kp.is_ai_generated ?? kp.is_manual ?? '',
               }))
             : [];
 
@@ -811,7 +810,7 @@ const PatientProfile = () => {
       typeof id === "number" || (typeof id === "string" && /^\d+$/.test(id));
 
     if (isBackendNote) {
-      // ── PATCH /api/key-points/{id} ──
+      // ── PATCH /api/v1/key-points/{id} ──
       if (editSavingId === id) return; // prevent double submit
       setEditSavingId(id);
       try {
@@ -2499,8 +2498,8 @@ const PatientProfile = () => {
                     highAlerts.map((alertObj) => {
                       const noteId = alertObj.id;
                       const alertInsight = alertObj.insight;
-                      const isManualNote = alertObj.is_manual === "Doctor Note";
-                      const alertTitle = alertObj.title || alertObj.is_manual;
+                      const isManualNote = alertObj.is_ai_generated === "Doctor Note";
+                      const alertTitle = alertObj.title || alertObj.is_ai_generated;
 
                       return (
                         <div className="note-item high-priority" key={noteId}>
@@ -2543,9 +2542,7 @@ const PatientProfile = () => {
                                 <div className="note-footer">
                                   <div className="note-meta-stack">
                                     <span className="note-date">
-                                      {!isManualNote && (
-                                        <>{alertObj.is_manual} · </>
-                                      )}
+                                        <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
                                     {!isManualNote && (
@@ -2614,9 +2611,7 @@ const PatientProfile = () => {
                             <div className="note-footer">
                               <div className="note-meta-stack">
                                 <span className="note-date">
-                                  {!isManualNote && (
-                                    <>{alertObj.is_manual} · </>
-                                  )}
+                                    <>{alertObj.is_ai_generated} · </>
                                   {alertObj.date}
                                 </span>
                                 {!isManualNote && (
@@ -2875,7 +2870,7 @@ const PatientProfile = () => {
                   ) : mediumAlerts?.length > 0 ? (
                     // عرض البيانات الحقيقية من السيرفر
                     mediumAlerts.map((alertObj) => {
-                      const isManualNote = alertObj.is_manual === "Doctor Note";
+                      const isManualNote = alertObj.is_ai_generated === "Doctor Note";
                       return (
                         <div
                           className="note-item medium-priority"
@@ -2920,9 +2915,7 @@ const PatientProfile = () => {
                                 <div className="note-footer">
                                   <div className="note-meta-stack">
                                     <span className="note-date">
-                                      {!isManualNote && (
-                                        <>{alertObj.is_manual} · </>
-                                      )}
+                                        <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
                                     {!isManualNote && (
@@ -2985,7 +2978,7 @@ const PatientProfile = () => {
                             <div className="note-text">
                               {!isManualNote && (
                                 <strong>
-                                  {alertObj.title || alertObj.is_manual}:
+                                  {alertObj.title || alertObj.is_ai_generated}:
                                 </strong>
                               )}{" "}
                               {alertObj.insight}
@@ -2995,9 +2988,7 @@ const PatientProfile = () => {
                             <div className="note-footer">
                               <div className="note-meta-stack">
                                 <span className="note-date">
-                                  {!isManualNote && (
-                                    <>{alertObj.is_manual} · </>
-                                  )}
+                                    <>{alertObj.is_ai_generated} · </>
                                   {alertObj.date}
                                 </span>
                                 {!isManualNote && (
@@ -3257,7 +3248,7 @@ const PatientProfile = () => {
                   ) : lowAlerts?.length > 0 ? (
                     // عرض بيانات السيرفر لـ Low Priority
                     lowAlerts.map((alertObj) => {
-                      const isManualNote = alertObj.is_manual === "Doctor Note";
+                      const isManualNote = alertObj.is_ai_generated === "Doctor Note";
                       return (
                         <div
                           className="note-item low-priority"
