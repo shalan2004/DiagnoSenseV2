@@ -491,7 +491,7 @@ export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority })
 };
 
 export const patchKeyPointAPI = async (keyPointId, { insight }) => {
-  return await apiCall(`/api/key-points/${keyPointId}`, {
+  return await apiCall(`/api/v1/key-points/${keyPointId}`, {
     method: 'PATCH',
     body: JSON.stringify({ insight }),
   });
@@ -500,7 +500,7 @@ export const deleteKeyPointAPI = async (keyPointId) => {
   const token = getCookie('user_token');
   console.log('[deleteKeyPoint] sending request — keyPointId:', keyPointId, '| token:', token);
 
-  const result = await apiCall(`/api/key-points/${keyPointId}`, {
+  const result = await apiCall(`/api/v1/key-points/${keyPointId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,

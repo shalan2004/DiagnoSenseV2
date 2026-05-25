@@ -810,7 +810,7 @@ const PatientProfile = () => {
       typeof id === "number" || (typeof id === "string" && /^\d+$/.test(id));
 
     if (isBackendNote) {
-      // ── PATCH /api/key-points/{id} ──
+      // ── PATCH /api/v1/key-points/{id} ──
       if (editSavingId === id) return; // prevent double submit
       setEditSavingId(id);
       try {
