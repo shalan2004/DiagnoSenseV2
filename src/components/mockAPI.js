@@ -1,8 +1,8 @@
-// const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
+const API_BASE_URL = 'https://nontelepathically-pamphletary-cyndi.ngrok-free.dev';
 // const API_BASE_URL = 'https://toothlike-intermetatarsal-avah.ngrok-free.dev';
 // const API_BASE_URL = 'https://unpersecuted-vanitied-jayson.ngrok-free.dev';
 // const API_BASE_URL = 'https://unallegedly-wrinkly-claribel.ngrok-free.dev';
-const API_BASE_URL = 'http://127.0.0.1:8000';
+// const API_BASE_URL = 'http://127.0.0.1:8000';
 
 import { getCookie, setCookie, deleteCookie, setJsonCookie } from './cookieUtils';
 
@@ -45,10 +45,10 @@ const apiCall = async (endpoint, options = {}) => {
           deleteCookie('isAuthenticated');
         }
 
-        return {
+       return {
           success: false,
           message: data.message || 'Something went wrong',
-          errors: data.errors || null,
+          errors: data.errors || data.data || null,
         };
       }
 
@@ -933,7 +933,7 @@ export const markPatientAttendedAPI = async (patientId) => {
  * @param {string} question - The doctor's typed question
  */
 export const sendChatbotMessageAPI = async (patientId, question) =>
-  apiCall(`/api/chatbot/${patientId}`, {
+  apiCall(`/api/v1/patients/${patientId}/chatbot/ask`, {
     method: 'POST',
     body: JSON.stringify({ question }),
   });
@@ -976,9 +976,17 @@ export const updateDoctorProfileAPI = async (doctorId, { name, specialization })
 };
 
 export const changePasswordAPI = async (current_password, new_password, new_password_confirmation) => {
-  return await apiCall('api/v1/doctors/change-password', {
+  const params = new URLSearchParams();
+  params.append('current_password', current_password);
+  params.append('new_password', new_password);
+  params.append('new_password_confirmation', new_password_confirmation);
+
+  return await apiCall('/api/v1/doctors/change-password', {
     method: 'PATCH',
-    body: JSON.stringify({ current_password, new_password, new_password_confirmation }),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
   });
 };
 
