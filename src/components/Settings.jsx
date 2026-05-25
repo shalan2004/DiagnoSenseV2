@@ -301,7 +301,8 @@ const Settings = () => {
               : null,
         });
       }
-    } catch {
+   } catch (err) {
+      console.error("[changePassword] unexpected error:", err);
       setPasswordFeedback({
         type: "error",
         message: "Network error. Please check your connection.",
@@ -591,6 +592,7 @@ const Settings = () => {
                     value={passwordForm.currentPassword}
                     onChange={handlePasswordChange}
                     placeholder="Enter current password"
+                    required
                   />
                   <button
                     className="settings-page-eye-btn"
@@ -639,6 +641,7 @@ const Settings = () => {
                     value={passwordForm.newPassword}
                     onChange={handlePasswordChange}
                     placeholder="Enter new password"
+                    required
                   />
                   <button
                     className="settings-page-eye-btn"
@@ -678,6 +681,7 @@ const Settings = () => {
                     value={passwordForm.confirmPassword}
                     onChange={handlePasswordChange}
                     placeholder="Confirm new password"
+                    required
                   />
                   <button
                     className="settings-page-eye-btn"

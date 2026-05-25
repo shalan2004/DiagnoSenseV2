@@ -45,10 +45,10 @@ const apiCall = async (endpoint, options = {}) => {
           deleteCookie('isAuthenticated');
         }
 
-        return {
+       return {
           success: false,
           message: data.message || 'Something went wrong',
-          errors: data.errors || null,
+          errors: data.errors || data.data || null,
         };
       }
 
@@ -976,9 +976,17 @@ export const updateDoctorProfileAPI = async (doctorId, { name, specialization })
 };
 
 export const changePasswordAPI = async (current_password, new_password, new_password_confirmation) => {
-  return await apiCall('api/v1/doctors/change-password', {
+  const params = new URLSearchParams();
+  params.append('current_password', current_password);
+  params.append('new_password', new_password);
+  params.append('new_password_confirmation', new_password_confirmation);
+
+  return await apiCall('/api/v1/doctors/change-password', {
     method: 'PATCH',
-    body: JSON.stringify({ current_password, new_password, new_password_confirmation }),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
   });
 };
 
