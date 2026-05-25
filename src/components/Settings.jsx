@@ -348,7 +348,6 @@ const Settings = () => {
 
     try {
       const res = await deleteDoctorAccountAPI(
-        doctorId,
         deleteForm.password,
         deleteForm.passwordConfirm,
       );
@@ -359,7 +358,7 @@ const Settings = () => {
           message: res.message || "Account deleted successfully.",
           messages: null,
         });
-        setDeleteCountdown(25);
+        setDeleteCountdown(15);
       } else {
         const fieldErrors = res.errors ? Object.values(res.errors).flat() : [];
         setDeleteFeedback({
@@ -371,7 +370,8 @@ const Settings = () => {
               : null,
         });
       }
-    } catch {
+   } catch (err) {
+      console.error("[deleteAccount] unexpected error:", err);
       setDeleteFeedback({
         type: "error",
         message: "Network error. Please check your connection.",
