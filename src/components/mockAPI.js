@@ -703,7 +703,7 @@ export const deletePatientAPI = async (patientId) => {
 export const getPatientForEditAPI = async (patientId) => {
   const token = getCookie('user_token');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/patients/${patientId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/patients/${patientId}/edit`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

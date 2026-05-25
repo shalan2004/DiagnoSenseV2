@@ -549,7 +549,7 @@ const PatientList = () => {
         }
 
         return {
-          id: p.id || index,
+          id: p.patient_id ?? p.id ?? index,
           initials: p.initials || initials,
           name: p.name || "Unknown Patient",
           age: p.age || "N/A",

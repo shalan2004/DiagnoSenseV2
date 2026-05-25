@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { addPatientAPI, getPatientOverviewAPI, updatePatientAPI } from "./mockAPI";
+import { addPatientAPI, getPatientOverviewAPI, updatePatientAPI, getPatientForEditAPI } from "./mockAPI";
 import UploadFileItem from "./UploadFileItem";
 import ProcessingReports from "../components/ProcessingReports";
 import { useSidebar } from "../components/SidebarContext";
@@ -21,7 +21,13 @@ const AddPatient = () => {
   const isEditMode = !!patientId;
   const patientState = location.state?.patientData;
   const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
-  const [successToast, setSuccessToast] = useState(null);
+  const [toast, setToast] = useState({ isOpen: false, message: "", isSuccess: false });
+  const showToast = (message, isSuccess) => {
+    setToast({ isOpen: true, message, isSuccess });
+    setTimeout(() => {
+      setToast({ isOpen: false, message: "", isSuccess: false });
+    }, 5000);
+  };
   const [currentStep, setCurrentStep] = useState(1);
   const { unreadCount, openNotifications } = useNotifications();
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
@@ -128,63 +134,123 @@ const AddPatient = () => {
     canNext: isStep2Valid,
   });
 
+  const fetchedPatientIdRef = useRef(null);
+
   useEffect(() => {
     if (!isEditMode) return;
+    if (fetchedPatientIdRef.current === patientId) return;
+    fetchedPatientIdRef.current = patientId;
+
+    let active = true;
+    
     const fetchPatient = async () => {
-      setIsFetching(true);
-      
-      let d = patientState;
-      if (!d) {
-        const res = await getPatientOverviewAPI(patientId);
+      try {
+        setIsFetching(true);
+        
+        // Clear old data to prevent stale states
+        setFormData({
+          fullName: "",
+          contact: "",
+          date_of_birth: "",
+          national_id: "",
+          surgeryText: "",
+          medications: "",
+          allergies: "",
+          familyHistory: "",
+          ChiefComplaint: "",
+        });
+        setSelectedGender(null);
+        setIsSmoker(null);
+        setHasSurgeries(null);
+        setSelectedChronicDiseases([]);
+        setFileManager({ lab: [], history: [], radiology: [] });
+
+        const res = await getPatientForEditAPI(patientId);
+
+        // Do not use `if (!active) return;` here, as the strict mode cleanup
+        // sets active=false but the second setup skips fetch, leaving us stuck in loading!
+
         if (res.success && res.data) {
-          const raw = res.data;
-          d = Array.isArray(raw) ? raw[0] : (raw ?? res);
+          const d = res.data;
+          const pi = d?.personal_info || d;
+          const mh = d?.medical_history || d;
+
+          const name = pi.name || pi.patientName || pi.full_name || pi.patient_name || "";
+          const contact = pi.contact || pi.email || pi.phone || "";
+          const dob = pi.date_of_birth || pi.age || pi.dob || "";
+          const national_id = pi.national_id || pi.patientId || "";
+          const gender = pi.gender || "";
+
+          const is_smoker = mh.is_smoker ?? mh.smoker ?? null;
+          const prev_surgeries = mh.previous_surgeries_name ?? mh.previousSurgeries ?? "";
+          const has_surgeries = mh.previous_surgeries ?? !!prev_surgeries;
+          const chronic_diseases = mh.chronic_diseases ?? mh.chronicDiseases ?? [];
+          const medications = mh.current_medications ?? mh.medications ?? "";
+          const allergies = mh.allergies ?? "";
+          const family_history = mh.family_history ?? mh.familyHistory ?? "";
+          const chief_complaint = mh.current_complaints ?? mh.current_complaint ?? mh.chief_complaint ?? mh.chiefComplaint ?? "";
+
+          setFormData((prev) => ({
+            ...prev,
+            fullName: name,
+            contact: contact,
+            date_of_birth: dob,
+            national_id: national_id,
+            surgeryText: prev_surgeries,
+            medications: medications,
+            allergies: allergies,
+            familyHistory: family_history,
+            ChiefComplaint: chief_complaint,
+          }));
+          setSelectedGender(gender || null);
+          if (is_smoker !== null) {
+            const smokerStr = String(is_smoker).toLowerCase();
+            setIsSmoker(!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
+          }
+          if (has_surgeries !== null) setHasSurgeries(!!has_surgeries);
+          setSelectedChronicDiseases(Array.isArray(chronic_diseases) ? chronic_diseases : []);
+
+          if (d.existing_files && Array.isArray(d.existing_files)) {
+            const existingLab = [];
+            const existingHistory = [];
+            const existingRadiology = [];
+            
+            d.existing_files.forEach(file => {
+              if (file.type === 'lab') existingLab.push(file);
+              else if (file.type === 'history' || file.type === 'medical_history') existingHistory.push(file);
+              else if (file.type === 'radiology') existingRadiology.push(file);
+            });
+            
+            setFileManager(prev => ({
+              ...prev,
+              lab: [...existingLab, ...prev.lab],
+              history: [...existingHistory, ...prev.history],
+              radiology: [...existingRadiology, ...prev.radiology],
+            }));
+          }
+        } else if (res.success === false) {
+           setFieldErrors((prev) => ({
+             ...prev,
+             _general: res.message || "Failed to load patient data.",
+           }));
         }
-      }
-
-      if (d) {
-        const pi = d?.personal_info || d;
-        const mh = d?.medical_history || d;
-
-        const name = pi.name || pi.patientName || pi.full_name || pi.patient_name || "";
-        const contact = pi.contact || pi.email || pi.phone || "";
-        const dob = pi.date_of_birth || pi.age || pi.dob || "";
-        const national_id = pi.national_id || pi.patientId || "";
-        const gender = pi.gender || "";
-
-        const is_smoker = mh.is_smoker ?? mh.smoker ?? null;
-        const prev_surgeries = mh.previous_surgeries_name ?? mh.previousSurgeries ?? "";
-        const has_surgeries = mh.previous_surgeries ?? !!prev_surgeries;
-        const chronic_diseases = mh.chronic_diseases ?? mh.chronicDiseases ?? [];
-        const medications = mh.current_medications ?? mh.medications ?? "";
-        const allergies = mh.allergies ?? "";
-        const family_history = mh.family_history ?? mh.familyHistory ?? "";
-        const chief_complaint = mh.current_complaints ?? mh.current_complaint ?? mh.chief_complaint ?? mh.chiefComplaint ?? "";
-
-        setFormData((prev) => ({
+      } catch (err) {
+        console.error("Error mapping patient data:", err);
+        setFieldErrors((prev) => ({
           ...prev,
-          fullName: name,
-          contact: contact,
-          date_of_birth: dob,
-          national_id: national_id,
-          surgeryText: prev_surgeries,
-          medications: medications,
-          allergies: allergies,
-          familyHistory: family_history,
-          ChiefComplaint: chief_complaint,
+          _general: "An error occurred while loading patient data.",
         }));
-        setSelectedGender(gender || null);
-        if (is_smoker !== null) {
-          const smokerStr = String(is_smoker).toLowerCase();
-          setIsSmoker(!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
-        }
-        if (has_surgeries !== null) setHasSurgeries(!!has_surgeries);
-        setSelectedChronicDiseases(Array.isArray(chronic_diseases) ? chronic_diseases : []);
+      } finally {
+        setIsFetching(false);
       }
-      setIsFetching(false);
     };
+    
     fetchPatient();
-  }, [isEditMode, patientId, patientState]);
+    
+    return () => {
+      active = false;
+    };
+  }, [isEditMode, patientId]);
 
   useEffect(() => {
     const categories = ["lab", "history", "radiology"];
@@ -370,7 +436,8 @@ const AddPatient = () => {
     const isYes = value === "yes";
     setHasSurgeries(isYes);
     if (!isYes) {
-      setFormData((prev) => ({ ...prev, surgeryText: "" }));
+      // Intentionally NOT clearing formData.surgeryText here
+      // so the value is preserved if the user toggles back to Yes.
       setFieldErrors((prev) => {
         const n = { ...prev };
         delete n.surgeryText;
@@ -521,13 +588,13 @@ const AddPatient = () => {
         apiFormData.append("current_complaints", formData.ChiefComplaint);
       }
 
-      fileManager.lab.forEach((entry) =>
+      fileManager.lab.filter(entry => entry.file).forEach((entry) =>
         apiFormData.append("lab[]", entry.file),
       );
-      fileManager.history.forEach((entry) =>
+      fileManager.history.filter(entry => entry.file).forEach((entry) =>
         apiFormData.append("medical_history[]", entry.file),
       );
-      fileManager.radiology.forEach((entry) =>
+      fileManager.radiology.filter(entry => entry.file).forEach((entry) =>
         apiFormData.append("radiology[]", entry.file),
       );
 
@@ -538,13 +605,13 @@ const AddPatient = () => {
 
       if (result.success) {
         if (isEditMode) {
-          setSuccessToast(result.message || "Patient file updated successfully.");
+          showToast(result.message || "Patient file updated successfully.", true);
           window.dispatchEvent(new CustomEvent("patientListInvalidated"));
           window.dispatchEvent(new CustomEvent("dashboardInvalidated"));
           
           setTimeout(() => {
             navigate(`/patient-profile/${patientId}`);
-          }, 1500);
+          }, 4000);
           return;
         }
 
@@ -586,6 +653,10 @@ const AddPatient = () => {
         setPollingInfo({ patientId: result.patient_id });
         setShowProcessingScreen(true);
       } else {
+        if (isEditMode) {
+          showToast(result.message || "Failed to update patient file. Please try again.", false);
+        }
+
         // Log the raw 422 body so we can see every field the backend flagged
         console.log("[add-patient] 422 raw response:", {
           message: result.message,
@@ -725,27 +796,108 @@ const AddPatient = () => {
         onClose={closeLogoutModal}
       />
 
-      {successToast && (
-        <div className="edit-success-toast" style={{
-          position: "fixed",
-          top: "20px",
-          right: "20px",
-          backgroundColor: "#10B981",
-          color: "white",
-          padding: "12px 24px",
-          borderRadius: "8px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-          zIndex: 9999,
-          fontWeight: 500,
-          animation: "slideIn 0.3s ease-out"
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          {successToast}
+      {/* ── Toast Notification ── */}
+      {toast.isOpen && (
+        <div
+          onClick={() => setToast({ isOpen: false, message: "", isSuccess: false })}
+          style={{
+            position: "fixed",
+            top: "80px",
+            right: "24px",
+            zIndex: 99999,
+            minWidth: "300px",
+            maxWidth: "350px",
+            background: "var(--card-bg, #ffffff)",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color, #e5e7eb)",
+            padding: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "12px",
+            animation: "slideInRight 0.3s ease-out forwards",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 10px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+            cursor: "pointer",
+          }}
+        >
+          {/* Icon */}
+          <div
+            style={{
+              flexShrink: 0,
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: toast.isSuccess
+                ? "rgba(34,197,94,0.1)"
+                : "rgba(239,68,68,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "15px",
+              marginTop: "1px",
+              color: toast.isSuccess ? "#10B981" : "#EF4444"
+            }}
+          >
+            {toast.isSuccess ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
+          </div>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "0.9rem",
+                fontWeight: 600,
+                color: "var(--text-primary, #111)",
+                marginBottom: "4px",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {toast.isSuccess ? "Success" : "Failed"}
+            </div>
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: "var(--text-secondary, #666)",
+                lineHeight: 1.4,
+                wordBreak: "break-word",
+              }}
+            >
+              {toast.message}
+            </div>
+          </div>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setToast({ isOpen: false, message: "", isSuccess: false });
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              padding: "4px",
+              cursor: "pointer",
+              color: "var(--text-tertiary, #9ca3af)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginLeft: "auto",
+              marginTop: "-4px",
+              marginRight: "-4px"
+            }}
+            title="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
@@ -1357,6 +1509,28 @@ const AddPatient = () => {
                       </p>
                     </div>
 
+                    {isEditMode && fileManager[category].some(e => e.id || e.url) && (
+                      <div className="existing-files-section" style={{ marginBottom: "16px" }}>
+                        <h5 style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>Existing files</h5>
+                        <div className="uploaded-files-list">
+                          {fileManager[category].map((entry, index) => {
+                            if (!(entry.id || entry.url)) return null;
+                            return (
+                              <UploadFileItem
+                                key={`existing-${index}`}
+                                fileName={entry.name || "unknown"}
+                                viewUrl={entry.url}
+                                style={{
+                                  borderColor: "#E5E7EB",
+                                  background: "#F9FAFB",
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     <div
                       className="dropzone"
                       data-category={category}
@@ -1394,20 +1568,28 @@ const AddPatient = () => {
                       onChange={(e) => handleFileInputChange(category, e)}
                     />
 
-                    <div className="uploaded-files-list">
-                      {fileManager[category].map((entry, index) => (
-                        <UploadFileItem
-                          key={index}
-                          fileName={entry.file.name}
-                          viewUrl={entry.blobUrl}
-                          onRemove={() => removeFile(category, index)}
-                          style={{
-                            borderColor: "#BBF7D0",
-                            background: "#F0FDF4",
-                          }}
-                        />
-                      ))}
-                    </div>
+                    {fileManager[category].some(e => !(e.id || e.url)) && (
+                      <div className="new-files-section" style={{ marginTop: "16px" }}>
+                        {isEditMode && <h5 style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>New files</h5>}
+                        <div className="uploaded-files-list">
+                          {fileManager[category].map((entry, index) => {
+                            if (entry.id || entry.url) return null;
+                            return (
+                              <UploadFileItem
+                                key={`new-${index}`}
+                                fileName={entry.file?.name || entry.name || "unknown"}
+                                viewUrl={entry.blobUrl || entry.url}
+                                onRemove={() => removeFile(category, index)}
+                                style={{
+                                  borderColor: "#BBF7D0",
+                                  background: "#F0FDF4",
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
