@@ -99,12 +99,12 @@ export default function ProcessingReports({
       return;
     }
 
-    // Normalize is_ai_generated → is_manual so PatientProfile UI works for both flows
+    // Normalize so PatientProfile UI works for both flows
     const normalizeAlerts = (arr) =>
       Array.isArray(arr)
         ? arr.map((kp) => ({
             ...kp,
-            is_manual: kp.is_ai_generated ?? kp.is_manual ?? '',
+            is_ai_generated: kp.is_ai_generated ?? kp.is_manual ?? '',
           }))
         : [];
 

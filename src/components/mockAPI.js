@@ -477,14 +477,14 @@ export const addPatientAPI = async (formData) => {
 };
 
 export const getPatientKeyInfoAPI = async (patientId) => {
-  return await apiCall(`/api/v1/patients/${patientId}/key-info`, { method: 'GET' });
+  return await apiCall(`/api/v1/patients/${patientId}/key-points`, { method: 'GET' });
 };
 export const getPatientOverviewAPI = async (patientId) => {
   return await apiCall(`/api/v1/patients/${patientId}/overview`, { method: 'GET' });
 };
 
 export const addPatientKeyInfoNoteAPI = async (patientId, { insight, priority }) => {
-  return await apiCall(`/api/v1/patients/${patientId}/key-info`, {
+  return await apiCall(`/api/v1/patients/${patientId}/key-points`, {
     method: 'POST',
     body: JSON.stringify({ insight, priority }),
   });
