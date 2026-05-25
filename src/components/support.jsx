@@ -42,7 +42,8 @@ function Support() {
   const [isUrgencyOpen, setIsUrgencyOpen] = useState(false);
 
   const user = getUser();
-  const userIdentity = user?.email || user?.phone || "";
+  console.log('[Support] user:', user);
+  const userIdentity = user?.contact;
   const userInitials = getDoctorInitials();
 
   const savedDraft = (() => {
@@ -448,13 +449,15 @@ function Support() {
                     type="text"
                     className="form-input"
                     value={userIdentity}
+                    placeholder={userIdentity ? "" : "No contact info linked"}
                     disabled
                     readOnly
                     style={{
                       backgroundColor: "var(--dm-bg-subtle)",
                       color: "var(--dm-text-muted)",
                       cursor: "not-allowed",
-                      border: "1px solid var(--dm-border-subtle)"
+                      border: "1px solid var(--dm-border-subtle)",
+                      opacity: 0.7,
                     }}
                     title="Identity is locked to your account"
                   />
