@@ -56,28 +56,34 @@ function Subscription() {
     searchParams.get("tab") || location.state?.tab || "plans",
   );
   const [transactions, setTransactions] = useState([]);
+  const [txCurrentPage, setTxCurrentPage] = useState(1);
+  const [txLastPage, setTxLastPage] = useState(1);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isCancelledLocally, setIsCancelledLocally] = useState(false);
   const fetchTransactions = React.useCallback(
-    async (force = false) => {
-      // ── Cache check ──
+    async (pageNumber = 1, force = false) => {
+      const cacheKey = `subscription_transactions_page_${pageNumber}`;
       if (!force) {
-        const cached = getCache("subscription_transactions");
+        const cached = getCache(cacheKey);
         if (cached) {
-          setTransactions(cached);
+          setTransactions(cached.data);
+          setTxCurrentPage(cached.meta?.current_page || 1);
+          setTxLastPage(cached.meta?.last_page || 1);
           setIsLoadingHistory(false);
           return;
         }
       }
 
       setIsLoadingHistory(true);
-      const result = await getTransactionsAPI();
+      const result = await getTransactionsAPI(pageNumber);
       console.log("--- Transactions API Full Response ---", result);
-      if (result.success && result.data) {
-        setTransactions(result.data.transactions);
-        // ── Store to cache ──
-        setCache("subscription_transactions", result.data.transactions);
-        // credits are managed globally via context — no local state needed
+      if (result.success && result.data && result.data.transactions) {
+        const txData = result.data.transactions.data || [];
+        const txMeta = result.data.transactions.meta || {};
+        setTransactions(txData);
+        setTxCurrentPage(txMeta.current_page || 1);
+        setTxLastPage(txMeta.last_page || 1);
+        setCache(cacheKey, { data: txData, meta: txMeta });
       }
       setIsLoadingHistory(false);
     },
@@ -153,7 +159,7 @@ function Subscription() {
       // Invalidate transactions cache so billing tab re-fetches on next open
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
       if (activeTab === "billing") {
-        fetchTransactions(true);
+        fetchTransactions(txCurrentPage, true);
       }
     }
     prevUnreadCount.current = unreadCount;
@@ -163,14 +169,15 @@ function Subscription() {
     refreshCredits,
     activeTab,
     fetchTransactions,
+    txCurrentPage,
   ]);
 
   // ── Fetch transactions only when user opens Billing & History tab ──
   useEffect(() => {
     if (activeTab === "billing") {
-      fetchTransactions(false);
+      fetchTransactions(txCurrentPage, false);
     }
-  }, [activeTab, fetchTransactions]);
+  }, [activeTab, txCurrentPage, fetchTransactions]);
 
   useEffect(() => {
     if (location.state?.tab) {
@@ -389,7 +396,7 @@ function Subscription() {
         }, 1500);
         window.dispatchEvent(new CustomEvent("subscriptionChanged"));
         if (activeTab === "billing") {
-          fetchTransactions(true);
+          fetchTransactions(txCurrentPage, true);
         }
         fetchAndToastLatest();
       }
@@ -423,7 +430,7 @@ function Subscription() {
       }, 1500);
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
       if (activeTab === "billing") {
-        fetchTransactions(true);
+        fetchTransactions(txCurrentPage, true);
       }
       fetchAndToastLatest();
     }
@@ -499,7 +506,7 @@ function Subscription() {
 
           // Refresh transactions automatically if on billing tab
           if (activeTab === "billing") {
-            fetchTransactions(true);
+            fetchTransactions(txCurrentPage, true);
           }
         }
       }, 500);
@@ -510,6 +517,11 @@ function Subscription() {
     setChargeHint("");
   };
   const dlInv = (date) => window.alert(`Downloading invoice for ${date}...`);
+
+  const PAGINATION_GROUP_SIZE = 10;
+  const currentGroup = Math.floor((txCurrentPage - 1) / PAGINATION_GROUP_SIZE);
+  const startPage = currentGroup * PAGINATION_GROUP_SIZE + 1;
+  const endPage = Math.min(startPage + PAGINATION_GROUP_SIZE - 1, txLastPage);
 
   return (
     <>
@@ -1401,6 +1413,55 @@ function Subscription() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="pagination" style={{ marginTop: "20px" }}>
+                  <button
+                    disabled={txCurrentPage <= 1 || transactions.length === 0}
+                    onClick={() => setTxCurrentPage((p) => Math.max(1, p - 1))}
+                    title="Previous Page"
+                  >
+                    ◂ Prev
+                  </button>
+
+                  {startPage > 1 && (
+                    <button
+                      onClick={() => setTxCurrentPage(startPage - 1)}
+                      title="Previous 10 Pages"
+                    >
+                      «
+                    </button>
+                  )}
+
+                  {Array.from(
+                    { length: endPage - startPage + 1 },
+                    (_, i) => startPage + i,
+                  ).map((page) => (
+                    <button
+                      key={page}
+                      className={txCurrentPage === page ? "active" : ""}
+                      onClick={() => setTxCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  {endPage < txLastPage && (
+                    <button
+                      onClick={() => setTxCurrentPage(endPage + 1)}
+                      title="Next 10 Pages"
+                    >
+                      »
+                    </button>
+                  )}
+
+                  <button
+                    disabled={txCurrentPage >= txLastPage || transactions.length === 0}
+                    onClick={() => setTxCurrentPage((p) => Math.min(txLastPage, p + 1))}
+                    title="Next Page"
+                  >
+                    Next ▸
+                  </button>
                 </div>
               </div>
             </div>

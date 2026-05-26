@@ -796,8 +796,8 @@ export const chargeWalletAPI = async (balance) => {
  * GET /api/transactions
  * Fetches the wallet transaction history.
  */
-export const getTransactionsAPI = async () => {
-  return await apiCall('/api/v1/wallets/transactions', {
+export const getTransactionsAPI = async (page = 1) => {
+  return await apiCall(`/api/v1/wallets/transactions?page=${page}`, {
     method: 'GET',
   });
 };
