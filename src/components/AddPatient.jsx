@@ -97,6 +97,40 @@ const AddPatient = () => {
     ChiefComplaint: "",
   });
 
+  const [initialData, setInitialData] = useState(null);
+
+  // Helper to check if AI related fields changed
+  const checkAiFieldsChanged = () => {
+    if (!initialData) return false;
+    
+    if (isSmoker !== initialData.isSmoker) return true;
+    if (hasSurgeries !== initialData.hasSurgeries) return true;
+    if (formData.surgeryText !== initialData.surgeryText) return true;
+    if (formData.medications !== initialData.medications) return true;
+    if (formData.allergies !== initialData.allergies) return true;
+    if (formData.familyHistory !== initialData.familyHistory) return true;
+    if (formData.ChiefComplaint !== initialData.ChiefComplaint) return true;
+    
+    if (selectedChronicDiseases.length !== initialData.chronicDiseases.length) return true;
+    const sortedSelected = [...selectedChronicDiseases].sort();
+    const sortedInitial = [...initialData.chronicDiseases].sort();
+    for (let i = 0; i < sortedSelected.length; i++) {
+      if (sortedSelected[i] !== sortedInitial[i]) return true;
+    }
+    
+    const hasNewFiles = 
+      fileManager.lab.some(f => f.file) ||
+      fileManager.history.some(f => f.file) ||
+      fileManager.radiology.some(f => f.file);
+      
+    if (hasNewFiles) return true;
+
+    const currentFilesCount = fileManager.lab.length + fileManager.history.length + fileManager.radiology.length;
+    if (currentFilesCount !== initialData.existingFilesCount) return true;
+
+    return false;
+  };
+
   // Only block Step 1's Next button for Step 1-specific field errors.
   // Errors from other steps (step 2/3) or _general must NOT block Step 1.
   const step1ErrorFields = [
@@ -205,14 +239,21 @@ const AddPatient = () => {
             ChiefComplaint: chief_complaint,
           }));
           setSelectedGender(gender || null);
+          
+          let parsedIsSmoker = null;
           if (is_smoker !== null) {
             const smokerStr = String(is_smoker).toLowerCase();
-            setIsSmoker(!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
+            parsedIsSmoker = (!!is_smoker && smokerStr !== "false" && smokerStr !== "no" && smokerStr !== "0");
+            setIsSmoker(parsedIsSmoker);
           }
-          if (has_surgeries !== null) setHasSurgeries(!!has_surgeries);
-          setSelectedChronicDiseases(Array.isArray(chronic_diseases) ? chronic_diseases : []);
+          const parsedHasSurgeries = has_surgeries !== null ? !!has_surgeries : null;
+          if (parsedHasSurgeries !== null) setHasSurgeries(parsedHasSurgeries);
+          const parsedChronicDiseases = Array.isArray(chronic_diseases) ? chronic_diseases : [];
+          setSelectedChronicDiseases(parsedChronicDiseases);
 
+          let existingFilesCount = 0;
           if (d.existing_files && Array.isArray(d.existing_files)) {
+            existingFilesCount = d.existing_files.length;
             const existingLab = [];
             const existingHistory = [];
             const existingRadiology = [];
@@ -230,6 +271,18 @@ const AddPatient = () => {
               radiology: [...existingRadiology, ...prev.radiology],
             }));
           }
+          
+          setInitialData({
+            isSmoker: parsedIsSmoker,
+            hasSurgeries: parsedHasSurgeries,
+            surgeryText: prev_surgeries,
+            chronicDiseases: parsedChronicDiseases,
+            medications: medications,
+            allergies: allergies,
+            familyHistory: family_history,
+            ChiefComplaint: chief_complaint,
+            existingFilesCount: existingFilesCount
+          });
         } else if (res.success === false) {
            setFieldErrors((prev) => ({
              ...prev,
@@ -611,10 +664,16 @@ const AddPatient = () => {
           window.dispatchEvent(new CustomEvent("patientListInvalidated"));
           window.dispatchEvent(new CustomEvent("dashboardInvalidated"));
           
-          setTimeout(() => {
-            navigate(`/patient-profile/${patientId}`);
-          }, 4000);
-          return;
+          if (checkAiFieldsChanged()) {
+            setPollingInfo({ patientId: patientId });
+            setShowProcessingScreen(true);
+            return;
+          } else {
+            setTimeout(() => {
+              navigate(`/patient-profile/${patientId}`);
+            }, 4000);
+            return;
+          }
         }
 
         localStorage.setItem(
