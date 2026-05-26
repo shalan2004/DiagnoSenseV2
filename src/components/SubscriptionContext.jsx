@@ -1,6 +1,28 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { getCurrentSubscriptionAPI } from "./mockAPI";
 
+const extractCredits = (response) => {
+  if (!response) return null;
+  const possibleValues = [
+    response?.data?.credits,
+    response?.data?.balance,
+    response?.data?.data?.credits,
+    response?.data?.data?.balance,
+    response?.credits,
+    response?.balance,
+  ];
+
+  for (const val of possibleValues) {
+    if (val != null) {
+      const parsed = typeof val === "string" ? parseFloat(val) : val;
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+};
+
 const SubscriptionContext = createContext(null);
 
 export function SubscriptionProvider({ children }) {
@@ -21,20 +43,21 @@ export function SubscriptionProvider({ children }) {
     setSubError(null);
     try {
       const result = await getCurrentSubscriptionAPI();
-      if (result.success && result.data) {
+      
+      const extractedCredits = extractCredits(result);
+      if (extractedCredits !== null) {
+        setCredits(extractedCredits);
+      }
+
+      if (result && result.success && result.data) {
         setSubscriptionData(result.data);
-        // Derive credits from the same response — no second request needed
-        const balance = result.data.balance ?? result.data.credits ?? 0;
-        setCredits(balance);
       } else {
         setSubscriptionData(null);
-        setCredits(null);
-        setSubError(result.message || "Failed to load subscription data");
+        setSubError(result?.message || "Failed to load subscription data");
       }
     } catch (err) {
       console.error("[SubscriptionContext] fetch error:", err);
       setSubscriptionData(null);
-      setCredits(null);
       setSubError("Network error loading subscription data");
     }
     setIsSubLoading(false);
@@ -49,11 +72,17 @@ export function SubscriptionProvider({ children }) {
   const refreshCredits = useCallback(async () => {
     try {
       const result = await getCurrentSubscriptionAPI();
-      if (result.success && result.data) {
-        const balance = result.data.balance ?? result.data.credits ?? 0;
-        setCredits(balance);
+      
+      const extractedCredits = extractCredits(result);
+      if (extractedCredits !== null) {
+        setCredits(extractedCredits);
+      }
+
+      if (result && result.success && result.data) {
         // Also keep subscriptionData fresh (same response, no extra cost)
         setSubscriptionData(result.data);
+      } else {
+        setSubscriptionData(null);
       }
     } catch (err) {
       console.error("[SubscriptionContext] refreshCredits error:", err);
