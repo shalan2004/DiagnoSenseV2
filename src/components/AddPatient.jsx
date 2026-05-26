@@ -13,6 +13,8 @@ import { useNotifications } from "./NotificationsContext";
 import { getDoctorInitials } from "./Dashboard";
 import { useTranscription } from "../hooks/useTranscription";
 import { getDirection, getTextAlign } from "../utils/textUtils";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const AddPatient = () => {
   const navigate = useNavigate();
@@ -1099,14 +1101,55 @@ const AddPatient = () => {
 
                 <div className="form-group">
                   <label className="form-label required">Date of Birth</label>
-                  <input
-                    type="date"
-                    className={`form-input${fieldErrors.date_of_birth ? " target-error" : ""}`}
-                    id="date_of_birth"
-                    placeholder="Select patient's date of birth"
-                    value={formData.date_of_birth}
-                    onChange={handleInputChange}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <DatePicker
+                      selected={
+                        formData.date_of_birth
+                          ? new Date(`${formData.date_of_birth.split('T')[0]}T00:00:00`)
+                          : null
+                      }
+                      onChange={(date) => {
+                        if (date) {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          handleInputChange({ target: { id: "date_of_birth", value: `${year}-${month}-${day}` } });
+                        } else {
+                          handleInputChange({ target: { id: "date_of_birth", value: "" } });
+                        }
+                      }}
+                      showMonthDropdown
+                      showYearDropdown
+                      dropdownMode="select"
+                      maxDate={new Date()}
+                      dateFormat={["dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
+                      placeholderText="DD/MM/YYYY"
+                      className={`form-input${fieldErrors.date_of_birth ? " target-error" : ""}`}
+                      id="date_of_birth"
+                      wrapperClassName="date-picker-wrapper-full"
+                      customInput={<input style={{ paddingRight: "40px" }} />}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: "16px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#A0A8B8"
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                    </div>
+                  </div>
                   {fieldErrors.date_of_birth && (
                     <div
                       style={{

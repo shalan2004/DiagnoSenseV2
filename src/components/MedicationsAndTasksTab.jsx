@@ -108,7 +108,13 @@ export default function MedicationsAndTasksTab({
 
   const parseValidDate = (value) => {
     if (!value || value === "No next visit") return null;
-    const m = moment(value, "YYYY-MM-DD HH:mm:ss");
+    const cleanValue = value.replace(/Z$/, '').replace(/\+00:00$/, '');
+    const m = moment(cleanValue, [
+      "YYYY-MM-DD HH:mm:ss",
+      "YYYY-MM-DDTHH:mm:ss",
+      "YYYY-MM-DDTHH:mm:ss.SSSSSS",
+      "YYYY-MM-DD",
+    ]);
     return m.isValid() ? m.toDate() : null;
   };
 
@@ -1011,8 +1017,11 @@ const normalizeTask = (t) => {
                                 }
                               }}
                               showTimeSelect
-                              dateFormat="MMMM d, yyyy h:mm aa"
-                              placeholderText="Select date and time"
+                              showMonthDropdown
+                              showYearDropdown
+                              dropdownMode="select"
+                              dateFormat={["dd/MM/yyyy h:mm aa", "dd-MM-yyyy h:mm aa", "dd.MM.yyyy h:mm aa", "dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
+                              placeholderText="DD/MM/YYYY hh:mm aa"
                               wrapperClassName="datepicker-wrapper"
                               className="step1-datepicker-input"
                               portalId="root"

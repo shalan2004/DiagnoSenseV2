@@ -1499,3 +1499,5 @@
         [data-theme="dark"] .back svg {
              color: var(--dm-text-primary, #f1f5f9);
         }
+.date-picker-wrapper-full { width: 100%; display: block; }
+
