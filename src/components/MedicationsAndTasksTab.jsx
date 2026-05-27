@@ -3,13 +3,33 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {
   createVisitAPI,
-  createVisitItem,
+  createVisitMedication,
+  createVisitTask,
   getPatientVisitItems,
   deletePatientMedication,
   deletePatientTask,
 } from "./mockAPI";
 import ConfirmModal from "./ConfirmModal";
 import moment from "moment";
+
+/**
+ * Extracts the most useful error message from an API response.
+ * Priority:
+ *  1. First field-level error from res.errors (or res.data when it's an object of arrays)
+ *  2. res.message
+ *  3. fallback string
+ */
+const extractApiError = (res, fallback = "Something went wrong.") => {
+  const errorsObj = res?.errors ?? (res?.data && typeof res.data === "object" && !Array.isArray(res.data) ? res.data : null);
+  if (errorsObj) {
+    for (const key of Object.keys(errorsObj)) {
+      const val = errorsObj[key];
+      if (Array.isArray(val) && val.length > 0) return val[0];
+      if (typeof val === "string" && val) return val;
+    }
+  }
+  return res?.message || fallback;
+};
 
 const TrashIcon = () => (
   <svg
@@ -96,7 +116,12 @@ export default function MedicationsAndTasksTab({
     closeDeleteConfirmModal();
   };
 
-  const [visitId, setVisitId] = useState(null); 
+  const [visitId, setVisitId] = useState(null);
+  // Ref mirrors visitId for synchronous reads inside async callbacks
+  // (avoids stale-closure bugs, especially with Save & create another)
+  const visitIdRef = useRef(null);
+  const latestLoadedVisitIdRef = useRef(null);
+  const isCreatingVisitRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
@@ -178,13 +203,33 @@ const normalizeTask = (t) => {
     if (res?.success) {
       setTaskItems((res.data?.tasks ?? []).map(normalizeTask));
       setMeds(res.data?.medications ?? []);
-      const label = res.data?.next_visit_date || null;
+      // New response shape uses latest_next_visit_date
+      const label = res.data?.latest_next_visit_date || res.data?.next_visit_date || null;
       setNextVisitDisplay(label);
       if (label && onNextVisitSaved) {
         onNextVisitSaved(label);
       }
+      
+      let existingId = res.data?.id ?? res.data?.visit_id ?? res.data?.visit?.id ?? null;
+      if (!existingId && res.data?.medications?.length > 0) {
+        existingId = res.data.medications[0].visit_id || res.data.medications[0].visit?.id || null;
+      }
+      if (!existingId && res.data?.tasks?.length > 0) {
+        existingId = res.data.tasks[0].visit_id || res.data.tasks[0].visit?.id || null;
+      }
+      if (existingId) {
+        latestLoadedVisitIdRef.current = existingId;
+      }
     } else {
-      setFetchError(res?.message || "Failed to load items.");
+      // Treat 404/resource-not-found as empty state, not a hard error
+      const msg = res?.message || "";
+      const isNotFound =
+        msg.toLowerCase().includes("not found") ||
+        msg.toLowerCase().includes("no visit") ||
+        msg.toLowerCase().includes("no record");
+      if (!isNotFound) {
+        setFetchError(msg || "Failed to load items.");
+      }
     }
   }, [patientId, onNextVisitSaved]); 
 
@@ -213,17 +258,18 @@ const normalizeTask = (t) => {
     setErrors({});
 
     setStep(1);
+    // Reset visitId both in state and in the synchronous ref
+    visitIdRef.current = null;
+    setVisitId(null);
+
+    // Always open at the Yes/No question — never skip to the date picker
     setHasNextVisit(null);
-
-
     setShowDatePicker(false);
     setVisitSaved(false);
-    setVisitId(null);
-    if (initialNextVisitDate) {
-      setVisitDateValue(initialNextVisitDate); 
-    } else {
-      setVisitDateValue("");
-    }
+
+    // Silently store any existing date so Yes button can prefill it
+    const prefillDate = nextVisitDisplay || initialNextVisitDate || null;
+    setVisitDateValue(prefillDate || "");
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -252,17 +298,69 @@ const normalizeTask = (t) => {
   };
 
   const ensureVisitId = async () => {
-    if (visitId) return visitId;
-    const res = await createVisitAPI({
-      patient_id: patientId,
-      has_next_visit: 0,
-      action: "next",
-    });
-    if (res && res.success && res.data?.id) {
-      setVisitId(res.data.id);
-      return res.data.id;
+    // Read from ref — always current, even between React renders
+    if (visitIdRef.current) return visitIdRef.current;
+    
+    if (hasNextVisit === false && latestLoadedVisitIdRef.current) {
+      visitIdRef.current = latestLoadedVisitIdRef.current;
+      setVisitId(latestLoadedVisitIdRef.current);
+      return latestLoadedVisitIdRef.current;
     }
-    return null;
+
+    if (isCreatingVisitRef.current) {
+      // Very brief polling guard if multiple saves are fired at once
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (visitIdRef.current) return visitIdRef.current;
+      }
+    }
+
+    isCreatingVisitRef.current = true;
+
+    try {
+      const payload = {
+        patient_id: patientId,
+        action: "next",
+      };
+
+      if (hasNextVisit === true) {
+        payload.has_next_visit = true;
+        payload.next_visit_date = visitDateValue;
+      } else {
+        payload.has_next_visit = false;
+      }
+
+      const res = await createVisitAPI(payload);
+      // Reject explicit error responses
+      if (res?.success === false) return null;
+      // Handle common backend response shapes:
+      const id =
+        res?.data?.id ??
+        res?.data?.visit?.id ??
+        res?.data?.visit_session?.id ??
+        res?.id ??
+        res?.visit?.id ??
+        res?.visit_id ??
+        res?.patient_visit_id ??
+        null;
+        
+      if (id) {
+        visitIdRef.current = id;
+        setVisitId(id);
+        return id;
+      }
+
+      // Fallback if backend returned success but no explicit id
+      if (latestLoadedVisitIdRef.current) {
+        visitIdRef.current = latestLoadedVisitIdRef.current;
+        setVisitId(latestLoadedVisitIdRef.current);
+        return latestLoadedVisitIdRef.current;
+      }
+
+      return null;
+    } finally {
+      isCreatingVisitRef.current = false;
+    }
   };
 
   const saveMedication = async (createAnother) => {
@@ -288,23 +386,18 @@ const normalizeTask = (t) => {
     const action = createAnother ? "save_and_create_another" : "save";
     const payload = {
       action,
-      type: "medication",
       name: medName.trim(),
       dosage: medDosage.trim(),
       frequency: medFreq.trim(),
       ...(medDuration.trim() && { duration: medDuration.trim() }),
+      ...(hasNextVisit === true && visitDateValue && { next_visit_date: visitDateValue }),
     };
 
-    const res = await createVisitItem(vid, payload);
+    const res = await createVisitMedication(vid, payload);
     setIsSubmitting(false);
 
-    console.log(
-      "[saveTask] backend response:",
-      JSON.stringify(res?.data, null, 2),
-    );
-    console.log("[saveTask] user input date:", taskNextVisitDate);
     if (!res || res.success === false) {
-      showToast(`❌ ${res?.message || "Failed to save medication."}`);
+      showToast(`❌ ${extractApiError(res, "Failed to save medication.")}`);
       return;
     }
 
@@ -355,19 +448,22 @@ const normalizeTask = (t) => {
     const action = createAnother ? "save_and_create_another" : "save";
     const payload = {
       action,
-      type: "task",
       title: taskTitle.trim(),
       ...(taskDesc.trim() && { description: taskDesc.trim() }),
       ...(taskNotes.trim() && { notes: taskNotes.trim() }),
-      ...(!hasNextVisit &&
-        taskNextVisitDate && { next_visit_date: taskNextVisitDate }),
     };
 
-    const res = await createVisitItem(vid, payload);
+    if (hasNextVisit === true && visitDateValue) {
+      payload.next_visit_date = visitDateValue;
+    } else if (hasNextVisit === false && taskNextVisitDate) {
+      payload.next_visit_date = taskNextVisitDate;
+    }
+
+    const res = await createVisitTask(vid, payload);
     setIsSubmitting(false);
 
     if (!res || res.success === false) {
-      showToast(`❌ ${res?.message || "Failed to save task."}`);
+      showToast(`❌ ${extractApiError(res, "Failed to save task.")}`);
       return;
     }
 
@@ -377,10 +473,10 @@ const normalizeTask = (t) => {
       title: returnedTask?.title ?? taskTitle.trim(),
       due: taskNextVisitDate 
         ? formatDateShort(taskNextVisitDate)
-        : returnedTask?.Due_date
-          ? formatDateShort(returnedTask.Due_date)
-          : returnedTask?.next_visit_date
-            ? formatDateShort(returnedTask.next_visit_date)
+        : returnedTask?.due_date
+          ? formatDateShort(returnedTask.due_date)
+          : returnedTask?.Due_date
+            ? formatDateShort(returnedTask.Due_date)
             : null,
     };
     setSavedTasksInForm((prev) => [...prev, savedTaskSummary]);
@@ -403,7 +499,7 @@ const normalizeTask = (t) => {
   const removeMedication = async (medicationId) => {
     if (deletingIds.has(medicationId)) return; 
     setDeletingIds((prev) => new Set(prev).add(medicationId));
-    const res = await deletePatientMedication(patientId, medicationId);
+    const res = await deletePatientMedication(medicationId);
     setDeletingIds((prev) => {
       const next = new Set(prev);
       next.delete(medicationId);
@@ -420,7 +516,7 @@ const normalizeTask = (t) => {
   const removeTask = async (taskId) => {
     if (deletingIds.has(taskId)) return; 
     setDeletingIds((prev) => new Set(prev).add(taskId));
-    const res = await deletePatientTask(patientId, taskId);
+    const res = await deletePatientTask(taskId);
     setDeletingIds((prev) => {
       const next = new Set(prev);
       next.delete(taskId);
@@ -861,6 +957,14 @@ const normalizeTask = (t) => {
                       onClick={() => {
                         setShowDatePicker(true);
                         setHasNextVisit(true);
+                        // Apply prefill now that user confirmed they want a next visit
+                        const prefill = nextVisitDisplay || initialNextVisitDate || null;
+                        if (prefill && !visitDateValue) {
+                          setVisitDateValue(prefill);
+                          setVisitSaved(true);
+                          const formatted = formatDate(prefill);
+                          setNextVisitDisplay(formatted);
+                        }
                       }}
                       style={{
                         padding: "12px 48px",
@@ -887,23 +991,9 @@ const normalizeTask = (t) => {
                     </button>
                     <button
                       className="med-task-choice-btn"
-                      disabled={isSubmitting}
-                      onClick={async () => {
-                        // "No" path: create a draft visit to get a visit id, then go to step 2
-                        setIsSubmitting(true);
-                        setSubmitError(null);
-                        const res = await createVisitAPI({
-                          patient_id: patientId,
-                          has_next_visit: 0,
-                          action: "next",
-                        });
-                        setIsSubmitting(false);
-                        if (res && res.success && res.data?.id) {
-                          setVisitId(res.data.id);
-                        }
+                      onClick={() => {
                         setHasNextVisit(false);
-
-                        // If user explicitly says NO next visit, clear it in the list too
+                        // Clear next visit display since user chose No
                         window.dispatchEvent(
                           new CustomEvent("patientNextVisitUpdated", {
                             detail: {
@@ -912,7 +1002,6 @@ const normalizeTask = (t) => {
                             },
                           }),
                         );
-
                         goToStep(2);
                       }}
                       style={{
@@ -922,26 +1011,21 @@ const normalizeTask = (t) => {
                         background: "white",
                         fontSize: "15px",
                         fontWeight: 600,
-                        color: isSubmitting ? "#aaa" : "#0E1A34",
-                        cursor: isSubmitting ? "not-allowed" : "pointer",
+                        color: "#0E1A34",
+                        cursor: "pointer",
                         transition: "all 0.2s",
                         minWidth: "130px",
-                        opacity: isSubmitting ? 0.6 : 1,
                       }}
                       onMouseOver={(e) => {
-                        if (!isSubmitting) {
-                          e.currentTarget.style.borderColor = "#2A66FF";
-                          e.currentTarget.style.color = "#2A66FF";
-                        }
+                        e.currentTarget.style.borderColor = "#2A66FF";
+                        e.currentTarget.style.color = "#2A66FF";
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.borderColor = "#E6EAF2";
-                        e.currentTarget.style.color = isSubmitting
-                          ? "#aaa"
-                          : "#0E1A34";
+                        e.currentTarget.style.color = "#0E1A34";
                       }}
                     >
-                      {isSubmitting ? "Please wait…" : "No"}
+                      No
                     </button>
                   </div>
                 )}
@@ -1102,8 +1186,7 @@ const normalizeTask = (t) => {
                             closeForm();
                           } else {
                             setSubmitError(
-                              res?.message ||
-                                "Failed to save visit. Please try again.",
+                              extractApiError(res, "Failed to save visit. Please try again."),
                             );
                           }
                         }}
@@ -1111,45 +1194,25 @@ const normalizeTask = (t) => {
                         {isSubmitting ? "Saving…" : "+ Save & Back"}
                       </button>
                       <button
-                        disabled={isSubmitting}
                         className="med-task-btn-next"
-                        onClick={async () => {
+                        onClick={() => {
                           if (!visitDateValue) {
                             showToast("⚠️ Please pick a date first");
                             return;
                           }
-                          setIsSubmitting(true);
-                          setSubmitError(null);
-                          const res = await createVisitAPI({
-                            patient_id: patientId,
-                            has_next_visit: true,
-                            next_visit_date: visitDateValue,
-                            action: "next",
-                          });
-                          setIsSubmitting(false);
-                          if (res && res.success) {
-                            if (res.data?.id) setVisitId(res.data.id);
-                            const savedDate =
-                              res.data?.next_visit_date || visitDateValue;
-                            if (onNextVisitSaved) onNextVisitSaved(savedDate);
-                            window.dispatchEvent(
-                              new CustomEvent("patientNextVisitUpdated", {
-                                detail: {
-                                  patientId,
-                                  next_visit_date: savedDate,
-                                },
-                              }),
-                            );
-                            goToStep(2);
-                          } else {
-                            setSubmitError(
-                              res?.message ||
-                                "Failed to create visit. Please try again.",
-                            );
-                          }
+                          if (onNextVisitSaved) onNextVisitSaved(visitDateValue);
+                          window.dispatchEvent(
+                            new CustomEvent("patientNextVisitUpdated", {
+                              detail: {
+                                patientId,
+                                next_visit_date: visitDateValue,
+                              },
+                            }),
+                          );
+                          goToStep(2);
                         }}
                       >
-                        {isSubmitting ? "Please wait…" : "Next →"}
+                        Next →
                       </button>
                     </div>
                   </div>
@@ -1252,21 +1315,26 @@ const normalizeTask = (t) => {
                     {savedMedsInForm.length > 0 && (
                       <div className="med-task-added-list-container">
                         <div className="med-task-added-list-header">
-                          💊 Added
+                          Added this session
                         </div>
                         <div className="med-task-added-list-stack">
                           {savedMedsInForm.map((m) => (
-                            <div
-                              key={m.id}
-                              className="med-task-added-item-mini"
-                            >
-                              <span className="med-task-added-item-text">
-                                💊 <strong>{m.name}</strong> — {m.dosage} —{" "}
-                                {m.frequency}
-                              </span>
-                              <span className="med-task-added-item-check">
-                                ✓
-                              </span>
+                            <div key={m.id} className="med-task-added-item-mini">
+                              <div className="med-task-added-item-icon medication">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M10.5 20.5L3.5 13.5a5 5 0 0 1 7.07-7.07l7 7a5 5 0 0 1-7.07 7.07z" />
+                                  <line x1="8.5" y1="11.5" x2="15.5" y2="11.5" />
+                                </svg>
+                              </div>
+                              <div className="med-task-added-item-body">
+                                <span className="med-task-added-item-name">{m.name}</span>
+                                <span className="med-task-added-item-meta">{m.dosage} &middot; {m.frequency}</span>
+                              </div>
+                              <div className="med-task-added-item-check">
+                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="1.5 6 4.5 9 10.5 3" />
+                                </svg>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1347,30 +1415,41 @@ const normalizeTask = (t) => {
                           <label className="form-label">
                             Next Visit <span className="required">*</span>
                           </label>
-                          <DatePicker
-                            selected={parseValidDate(taskNextVisitDate)}
-                            onChange={(date) => {
-                              if (date) {
-                                const formattedDate = moment(date).format(
-                                  "YYYY-MM-DD HH:mm:ss",
-                                );
-                                setTaskNextVisitDate(formattedDate);
-                                if (errors.taskNextVisitDate)
-                                  setErrors((p) => ({
-                                    ...p,
-                                    taskNextVisitDate: "",
-                                  }));
-                              } else {
-                                setTaskNextVisitDate("");
-                              }
-                            }}
-                            showTimeSelect
-                            dateFormat="MMMM d, yyyy h:mm aa"
-                            placeholderText="Select due date and time"
-                            wrapperClassName="datepicker-wrapper"
-                            className={`form-input styled-datepicker${errors.taskNextVisitDate ? " input-error" : ""}`}
-                            portalId="root"
-                          />
+                          <div className="med-task-inline-date-wrapper">
+                            <svg className="med-task-inline-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="4" width="18" height="18" rx="2" />
+                              <line x1="16" y1="2" x2="16" y2="6" />
+                              <line x1="8" y1="2" x2="8" y2="6" />
+                              <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                            <DatePicker
+                              selected={parseValidDate(taskNextVisitDate)}
+                              onChange={(date) => {
+                                if (date) {
+                                  const formattedDate = moment(date).format(
+                                    "YYYY-MM-DD HH:mm:ss",
+                                  );
+                                  setTaskNextVisitDate(formattedDate);
+                                  if (errors.taskNextVisitDate)
+                                    setErrors((p) => ({
+                                      ...p,
+                                      taskNextVisitDate: "",
+                                    }));
+                                } else {
+                                  setTaskNextVisitDate("");
+                                }
+                              }}
+                              showTimeSelect
+                              showMonthDropdown
+                              showYearDropdown
+                              dropdownMode="select"
+                              dateFormat={["dd/MM/yyyy h:mm aa", "dd-MM-yyyy h:mm aa", "dd.MM.yyyy h:mm aa", "dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
+                              placeholderText="DD/MM/YYYY hh:mm aa"
+                              wrapperClassName="datepicker-wrapper"
+                              className={`form-input med-task-inline-date-input${errors.taskNextVisitDate ? " input-error" : ""}`}
+                              portalId="root"
+                            />
+                          </div>
                           {errors.taskNextVisitDate && (
                             <p className="field-error">
                               {errors.taskNextVisitDate}
@@ -1395,49 +1474,30 @@ const normalizeTask = (t) => {
                     </div>
 
                     {savedTasksInForm.length > 0 && (
-                      <div style={{ marginBottom: "16px" }}>
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            color: "#3A4560",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          Added
+                      <div className="med-task-added-list-container">
+                        <div className="med-task-added-list-header">
+                          Added this session
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "6px",
-                          }}
-                        >
+                        <div className="med-task-added-list-stack">
                           {savedTasksInForm.map((t) => (
-                              <div
-                                key={t.id}
-                                className="med-task-task-added-item"
-                                style={{
-                                  padding: "10px 14px",
-                                  background: "#E9F0FF",
-                                  borderRadius: "8px",
-                                  border: "1px solid #C0D0FF",
-                                  fontSize: "13px",
-                                  color: "#0E1A34",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                }}
-                              >
-                              <span>
-                                <strong>{t.title}</strong>
-                                {t.due ? ` — Due: ${t.due}` : ""}
-                              </span>
-                              <span
-                                style={{ color: "#2A66FF", fontWeight: 600 }}
-                              >
-                                ✓
-                              </span>
+                            <div key={t.id} className="med-task-added-item-mini">
+                              <div className="med-task-added-item-icon task">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+                                  <rect x="9" y="3" width="6" height="4" rx="1" />
+                                  <line x1="9" y1="12" x2="15" y2="12" />
+                                  <line x1="9" y1="16" x2="13" y2="16" />
+                                </svg>
+                              </div>
+                              <div className="med-task-added-item-body">
+                                <span className="med-task-added-item-name">{t.title}</span>
+                                {t.due && <span className="med-task-added-item-meta">Due {t.due}</span>}
+                              </div>
+                              <div className="med-task-added-item-check">
+                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="1.5 6 4.5 9 10.5 3" />
+                                </svg>
+                              </div>
                             </div>
                           ))}
                         </div>

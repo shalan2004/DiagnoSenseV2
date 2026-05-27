@@ -545,93 +545,94 @@ export const getComparativeAnalysisAPI = async (patientId) => {
 };
 
 /**
-
-
-* @param {object} params
+ * POST /api/v1/patients/{patientId}/visits
+ * Creates a new patient visit session.
+ * Content-Type: application/json
+ *
+ * @param {object} params
  * @param {number|string} params.patient_id
  * @param {boolean}       params.has_next_visit
- * @param {string}        [params.next_visit_date]  
+ * @param {string}        [params.next_visit_date]  — required when has_next_visit is true
  * @param {"save"|"next"} params.action
  */
 export const createVisitAPI = async ({ patient_id, has_next_visit, next_visit_date, action }) => {
-  const token = getCookie('user_token');
-
-  const params = new URLSearchParams();
-  params.append('patient_id', patient_id);
-  params.append('has_next_visit', has_next_visit ? '1' : '0');
-  if (next_visit_date) params.append('next_visit_date', next_visit_date);
-  params.append('action', action);
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/visits`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: params.toString(),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        deleteCookie('user_token');
-        deleteCookie('user');
-        deleteCookie('isAuthenticated');
-      }
-      return {
-        success: false,
-        message: data.message || 'Something went wrong',
-        errors: data.errors || null,
-      };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('API Error:', error);
-    return {
-      success: false,
-      message: 'Network error. Please check your connection.',
-    };
+  const body = {
+    has_next_visit: !!has_next_visit,
+    action,
+  };
+  if (has_next_visit && next_visit_date) {
+    body.next_visit_date = next_visit_date;
   }
+
+  return await apiCall(`/api/v1/patients/${patient_id}/visits`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 };
 
 /**
- * POST /api/visits/{visitId}/items
- * Creates a task or medication under a specific visit.
- * Content-Type: application/json
+ * POST /api/v1/visits/{visitId}/medications
+ * Adds a medication entry to a specific visit.
  *
- * @param {number|string} visitId  - ID returned from POST /api/visits (response.data.id)
+ * @param {number|string} visitId
  * @param {object} payload
- * @param {"save"|"save_and_create_another"} payload.action
- * @param {"task"|"medication"} payload.type
- *
-*/
-export const createVisitItem = async (visitId, payload) => {
-  return await apiCall(`/api/visits/${visitId}/items`, {
+ * @param {string} payload.name         — required
+ * @param {string} payload.dosage       — required
+ * @param {string} payload.frequency    — required
+ * @param {string} [payload.duration]   — optional
+ * @param {string} [payload.next_visit_date] — optional
+ * @param {"save"|"save_and_create_another"} payload.action — required
+ */
+export const createVisitMedication = async (visitId, payload) => {
+  return await apiCall(`/api/v1/visits/${visitId}/medications`, {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 };
 
-
-export const getPatientVisitItems = async (patientId) => {
-  return await apiCall(`/api/patients/${patientId}/items`, { method: 'GET' });
+/**
+ * POST /api/v1/visits/{visitId}/tasks
+ * Adds a care task entry to a specific visit.
+ *
+ * @param {number|string} visitId
+ * @param {object} payload
+ * @param {string} payload.title        — required
+ * @param {string} [payload.description] — optional
+ * @param {string} [payload.notes]      — optional
+ * @param {string} [payload.next_visit_date] — optional
+ * @param {"save"|"save_and_create_another"} payload.action — required
+ */
+export const createVisitTask = async (visitId, payload) => {
+  return await apiCall(`/api/v1/visits/${visitId}/tasks`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 };
 
+/**
+ * GET /api/v1/patients/{patientId}/visits
+ * Returns visit history with tasks, medications, and latest next visit date.
+ */
+export const getPatientVisitItems = async (patientId) => {
+  return await apiCall(`/api/v1/patients/${patientId}/visits`, { method: 'GET' });
+};
 
-export const deletePatientMedication = async (patientId, medicationId) => {
-  return await apiCall(`/api/patients/${patientId}/medications/${medicationId}`, {
+/**
+ * DELETE /api/v1/medications/{medicationId}
+ * Deletes a single medication entry.
+ */
+export const deletePatientMedication = async (medicationId) => {
+  return await apiCall(`/api/v1/medications/${medicationId}`, {
     method: 'DELETE',
   });
 };
 
-
-export const deletePatientTask = async (patientId, taskId) => {
-  return await apiCall(`/api/patients/${patientId}/tasks/${taskId}`, {
+/**
+ * DELETE /api/v1/tasks/{taskId}
+ * Deletes a single care task entry.
+ */
+export const deletePatientTask = async (taskId) => {
+  return await apiCall(`/api/v1/tasks/${taskId}`, {
     method: 'DELETE',
   });
 };
