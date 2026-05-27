@@ -915,14 +915,14 @@ export const getTopfiveDiseases = async () => {
 }
 
 export const getTodayVisitsAPI = async () => {
-  return await apiCall('/api/dashboard/today-visits', {
+  return await apiCall('/api/v1/dashboard/today-visits', {
     method: 'GET',
   });
 };
 
 
-export const markPatientAttendedAPI = async (patientId) => {
-  return await apiCall(`/api/dashboard/${patientId}/attend`, {
+export const markVisitAttendedAPI = async (visitId) => {
+  return await apiCall(`/api/v1/visits/${visitId}/attend`, {
     method: 'PATCH',
   });
 };
