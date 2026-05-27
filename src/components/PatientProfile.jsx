@@ -471,17 +471,17 @@ const PatientProfile = () => {
         const normalizeAlerts = (arr) =>
           Array.isArray(arr)
             ? arr.map((kp) => ({
-                ...kp,
-                // Fallback to is_manual if backend is still sending old format, else use new is_ai_generated
-                is_ai_generated: kp.is_ai_generated ?? kp.is_manual ?? '',
-              }))
+              ...kp,
+              // Fallback to is_manual if backend is still sending old format, else use new is_ai_generated
+              is_ai_generated: kp.is_ai_generated ?? kp.is_manual ?? '',
+            }))
             : [];
 
         const rawKeyPoints = data.key_points ?? {};
         const normalized = {
-          high:   normalizeAlerts(rawKeyPoints.high),
+          high: normalizeAlerts(rawKeyPoints.high),
           medium: normalizeAlerts(rawKeyPoints.medium),
-          low:    normalizeAlerts(rawKeyPoints.low),
+          low: normalizeAlerts(rawKeyPoints.low),
         };
 
         setKeyInfo(normalized);
@@ -900,7 +900,7 @@ const PatientProfile = () => {
       alertObj?.title,
     );
     console.log("[ViewEvidence] Extracted evidence:", alertObj?.evidence);
-    console.log("[ViewEvidence] Source file to pass:", sourceFile);
+    console.log("[ViewEvidence] OCR files to pass:", keyInfoOcrFiles);
 
     setEvidencePanel({
       open: true,
@@ -981,9 +981,9 @@ const PatientProfile = () => {
         }
 
         if (dsRes?.success === false) {
-           setDecisionSupportError(dsRes?.message || "An error occurred while fetching decision support information.");
-           setDecisionSupportLoading(false);
-           return;
+          setDecisionSupportError(dsRes?.message || "An error occurred while fetching decision support information.");
+          setDecisionSupportLoading(false);
+          return;
         }
 
         const stillProcessing = dsRes?.data?.still_processing === true;
@@ -1057,7 +1057,7 @@ const PatientProfile = () => {
   const fetchComparativeAnalysis = async () => {
     if (!patientId) return;
     if (comparativeLoading) return;
-    
+
     setComparativeLoading(true);
     setComparativeError(null);
 
@@ -1081,9 +1081,9 @@ const PatientProfile = () => {
         }
 
         if (res?.success === false) {
-           setComparativeError(res?.message || "An error occurred while fetching comparative analysis.");
-           setComparativeLoading(false);
-           return;
+          setComparativeError(res?.message || "An error occurred while fetching comparative analysis.");
+          setComparativeLoading(false);
+          return;
         }
 
         const stillProcessing = res?.data?.still_processing === true;
@@ -1097,13 +1097,13 @@ const PatientProfile = () => {
 
         // If AI extraction failed but historical data is present, we just render the historical data.
         // If analysis is empty, it will naturally render the existing empty state.
-        
+
         // "No historical data found response: data: null"
         if (res?.data === null && res?.success === true) {
-            setComparativeData([]);
-            setComparativeLoadedFor(patientId);
-            setComparativeLoading(false);
-            return;
+          setComparativeData([]);
+          setComparativeLoadedFor(patientId);
+          setComparativeLoading(false);
+          return;
         }
 
         // Processing is complete
@@ -2542,7 +2542,7 @@ const PatientProfile = () => {
                                 <div className="note-footer">
                                   <div className="note-meta-stack">
                                     <span className="note-date">
-                                        <>{alertObj.is_ai_generated} · </>
+                                      <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
                                     {!isManualNote && (
@@ -2611,7 +2611,7 @@ const PatientProfile = () => {
                             <div className="note-footer">
                               <div className="note-meta-stack">
                                 <span className="note-date">
-                                    <>{alertObj.is_ai_generated} · </>
+                                  <>{alertObj.is_ai_generated} · </>
                                   {alertObj.date}
                                 </span>
                                 {!isManualNote && (
@@ -2915,7 +2915,7 @@ const PatientProfile = () => {
                                 <div className="note-footer">
                                   <div className="note-meta-stack">
                                     <span className="note-date">
-                                        <>{alertObj.is_ai_generated} · </>
+                                      <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
                                     {!isManualNote && (
@@ -2988,7 +2988,7 @@ const PatientProfile = () => {
                             <div className="note-footer">
                               <div className="note-meta-stack">
                                 <span className="note-date">
-                                    <>{alertObj.is_ai_generated} · </>
+                                  <>{alertObj.is_ai_generated} · </>
                                   {alertObj.date}
                                 </span>
                                 {!isManualNote && (
@@ -5709,7 +5709,7 @@ const PatientProfile = () => {
       <EvidencePanel
         isOpen={evidencePanel.open}
         onClose={() => setEvidencePanel((p) => ({ ...p, open: false }))}
-        sourceFile={sourceFile}
+        ocrFiles={keyInfoOcrFiles}
         selectedAlert={evidencePanel.selectedAlert}
       />
     </div>
