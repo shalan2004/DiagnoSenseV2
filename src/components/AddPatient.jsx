@@ -1248,7 +1248,7 @@ const AddPatient = () => {
               </div>
 
               <div className="wizard-actions">
-                <button className="back" onClick={() => navigate("/patients")}>
+                <button className="back" onClick={() => isEditMode ? navigate(`/patient-profile/${patientId}`) : navigate("/patients")}>
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
