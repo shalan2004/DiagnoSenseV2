@@ -30,7 +30,7 @@ const apiCall = async (endpoint, options = {}) => {
         headers: {
           ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           'Accept': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
+          ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
           ...(token && { 'Authorization': `Bearer ${token}` }),
           ...fetchOptions.headers,
         },
@@ -173,7 +173,7 @@ export const resetPasswordAPI = async (reset_token, password, password_confirmat
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
         'Authorization': `Bearer ${reset_token}`,
       },
       body: params.toString(),
@@ -319,7 +319,7 @@ export const getPatientAnalysisAPI = async (patientId) => {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true'
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' })
       },
     });
 
@@ -430,7 +430,7 @@ export const addPatientAPI = async (formData) => {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
       },
       body: formData,
     });
@@ -660,7 +660,7 @@ export const getPatientNextVisitAPI = async (patientId) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
         ...(token && { 'Authorization': `Bearer ${token}` }),
       },
     });
@@ -723,7 +723,7 @@ export const getPatientForEditAPI = async (patientId) => {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
       },
     });
 
@@ -763,7 +763,7 @@ export const updatePatientAPI = async (patientId, formData) => {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
+        ...(API_BASE_URL.includes('ngrok') && { 'ngrok-skip-browser-warning': 'true' }),
       },
       body: formData,
     });

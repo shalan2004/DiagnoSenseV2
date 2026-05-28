@@ -32,7 +32,7 @@ const fetchPdfAsBlob = async (url) => {
     method: "GET",
     headers: {
       Accept: "application/pdf, application/octet-stream, */*",
-      "ngrok-skip-browser-warning": "true",
+      ...(apiBase.includes("ngrok") && { "ngrok-skip-browser-warning": "true" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
