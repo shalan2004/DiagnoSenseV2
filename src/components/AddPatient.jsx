@@ -145,13 +145,24 @@ const AddPatient = () => {
     step1ErrorFields.includes(k),
   );
 
-  const isStep1Valid =
-    formData.fullName.trim() &&
-    formData.contact.trim() &&
-    formData.date_of_birth &&
-    selectedGender &&
-    formData.national_id.trim() &&
-    !hasStep1Errors;
+  const isStep1Valid = (() => {
+    const isFullNameValid = formData.fullName.trim().length > 0;
+    const isContactValid = formData.contact.trim().length > 0;
+    const isNationalIdValid = formData.national_id.trim().length === 14;
+    let isDobValid = false;
+    if (formData.date_of_birth) {
+      const datePart = formData.date_of_birth.split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length === 3) {
+        const [y, m, d] = parts;
+        const currDate = new Date(y, m - 1, d);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        isDobValid = currDate <= today;
+      }
+    }
+    return isFullNameValid && isContactValid && isDobValid && selectedGender && isNationalIdValid;
+  })();
 
   console.log("[step1] nextDisabled", {
     currentStep,
@@ -472,14 +483,74 @@ const AddPatient = () => {
     let newValue = value;
     let newErrors = { ...fieldErrors };
 
-    if (id === "national_id") {
-      newValue = value.replace(/\D/g, "");
-    } else if (id === "fullName") {
-      newValue = value.replace(/[0-9]/g, "");
-    }
-
     if (newErrors[id]) {
       delete newErrors[id];
+    }
+
+    if (id === "fullName") {
+      const hasDigits = /\d/.test(value);
+      newValue = value.replace(/\d/g, "");
+      if (hasDigits) {
+        newErrors.fullName = "Full name must contain letters only.";
+        setTimeout(() => {
+          setFieldErrors((prev) => {
+            if (prev.fullName === "Full name must contain letters only.") {
+              const next = { ...prev };
+              delete next.fullName;
+              return next;
+            }
+            return prev;
+          });
+        }, 2500);
+      }
+    }
+
+    if (id === "national_id") {
+      const hasNonDigits = /\D/.test(value);
+      newValue = value.replace(/\D/g, "").slice(0, 14);
+
+      if (hasNonDigits) {
+        newErrors.national_id = "National ID must contain digits only.";
+        setTimeout(() => {
+          setFieldErrors((prev) => {
+            if (prev.national_id === "National ID must contain digits only.") {
+              const next = { ...prev };
+              // Fallback to length validation if it was just cleared
+              if (newValue && newValue.length !== 14) {
+                next.national_id = "National ID must be exactly 14 digits.";
+              } else {
+                delete next.national_id;
+              }
+              return next;
+            }
+            return prev;
+          });
+        }, 2500);
+      } else if (newValue && newValue.length !== 14) {
+        newErrors.national_id = "National ID must be exactly 14 digits.";
+      }
+    }
+
+    if (id === "date_of_birth") {
+      if (newValue) {
+        const datePart = newValue.split('T')[0];
+        const parts = datePart.split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts;
+          const dobDate = new Date(year, month - 1, day);
+          const isValid = dobDate.getFullYear() == year && dobDate.getMonth() == month - 1 && dobDate.getDate() == day;
+          
+          if (!isValid) {
+            newErrors.date_of_birth = "Invalid date.";
+          } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+              newErrors.date_of_birth = "Date of birth cannot be in the future.";
+            }
+          }
+        }
+      }
     }
 
     setFieldErrors(newErrors);
@@ -558,6 +629,32 @@ const AddPatient = () => {
   };
 
   const handleStep1Next = () => {
+    let newErrors = {};
+
+    if (/\d/.test(formData.fullName)) {
+      newErrors.fullName = "Full name must contain letters only.";
+    }
+
+    if (formData.national_id && formData.national_id.length !== 14) {
+      newErrors.national_id = "National ID must be exactly 14 digits.";
+    }
+
+    if (formData.date_of_birth) {
+      const datePart = formData.date_of_birth.split('T')[0];
+      const [year, month, day] = datePart.split('-');
+      const dobDate = new Date(year, month - 1, day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (dobDate > today) {
+        newErrors.date_of_birth = "Date of birth cannot be in the future.";
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...newErrors }));
+      return;
+    }
+
     setFieldErrors({});
     goToStep(2);
   };
@@ -1174,7 +1271,45 @@ const AddPatient = () => {
                           const day = String(date.getDate()).padStart(2, '0');
                           handleInputChange({ target: { id: "date_of_birth", value: `${year}-${month}-${day}` } });
                         } else {
+                          if (formData.date_of_birth) {
+                            const datePart = formData.date_of_birth.split('T')[0];
+                            const parts = datePart.split('-');
+                            if (parts.length === 3) {
+                              const [y, m, d] = parts;
+                              const currDate = new Date(y, m - 1, d);
+                              const today = new Date();
+                              today.setHours(0,0,0,0);
+                              if (currDate > today) return;
+                            }
+                          }
                           handleInputChange({ target: { id: "date_of_birth", value: "" } });
+                        }
+                      }}
+                      onChangeRaw={(e) => {
+                        const val = e.target.value;
+                        if (!val) {
+                          handleInputChange({ target: { id: "date_of_birth", value: "" } });
+                          return;
+                        }
+                        const parts = val.split(/[./-]/);
+                        if (parts.length === 3) {
+                          const day = parseInt(parts[0], 10);
+                          const month = parseInt(parts[1], 10);
+                          const year = parseInt(parts[2], 10);
+                          if (year > 1000) {
+                            const typedDate = new Date(year, month - 1, day);
+                            const isValid = typedDate.getFullYear() === year && typedDate.getMonth() === month - 1 && typedDate.getDate() === day;
+                            if (isValid) {
+                              const today = new Date();
+                              today.setHours(0,0,0,0);
+                              if (typedDate > today) {
+                                const y = typedDate.getFullYear();
+                                const m = String(typedDate.getMonth() + 1).padStart(2, '0');
+                                const d = String(typedDate.getDate()).padStart(2, '0');
+                                handleInputChange({ target: { id: "date_of_birth", value: `${y}-${m}-${d}` } });
+                              }
+                            }
+                          }
                         }
                       }}
                       showMonthDropdown
