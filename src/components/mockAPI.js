@@ -21,7 +21,10 @@ const apiCall = async (endpoint, options = {}) => {
 
   const executeCall = async () => {
     try {
-      const token = getCookie('user_token');
+      const token =
+        getCookie("user_token") ||
+        sessionStorage.getItem("user_token") ||
+        localStorage.getItem("user_token");
 
       const isFormData = fetchOptions.body instanceof FormData;
 
@@ -202,11 +205,11 @@ export const resetPasswordAPI = async (reset_token, password, password_confirmat
   }
 };
 
-const FRONTEND_CALLBACK_URL = 'http://localhost:5173/auth/google/callback';
+const FRONTEND_CALLBACK_URL = `${window.location.origin}/auth/google/callback`;
 
 export const getGoogleRedirectAPI = async () => {
   return await apiCall(
-    `/api/v1/auth/google/redirect?redirect_uri=${encodeURIComponent(FRONTEND_CALLBACK_URL)}`,
+    `/api/v1/auth/google/redirect`,
     { method: 'GET' }
   );
 };

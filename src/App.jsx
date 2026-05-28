@@ -20,7 +20,7 @@ import { SidebarProvider } from "./components/SidebarContext";
 import { SubscriptionProvider } from "./components/SubscriptionContext";
 import { NotificationsProvider } from "./components/NotificationsContext";
 import NotificationsPanel from "./components/NotificationsPanel";
-import { getCookie, setCookie } from "./components/cookieUtils";
+import { getCookie, setCookie, setJsonCookie } from "./components/cookieUtils";
 import { ThemeProvider } from "./components/ThemeContext";
 import { PageCacheProvider } from "./components/PageCacheContext";
 
@@ -58,18 +58,46 @@ const OAuthHashHandler = () => {
     const hash = window.location.hash || "";
     if (!hash) return;
 
+    console.log("[OAuthHashHandler] current hash:", hash);
+
     const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
     const token =
       hashParams.get("token") ||
       hashParams.get("access_token") ||
-      hashParams.get("auth_token");
+      hashParams.get("user_token");
 
     if (token) {
-      console.log("[OAuthHashHandler] Token found in hash, authenticating...");
+      console.log("[OAuthHashHandler] token detected:", token);
 
-      // Store token identically to normal login
+      // Store token using utility
       setCookie("user_token", token, 7);
       setCookie("isAuthenticated", "true", 7);
+      
+      // Explicitly set in sessionStorage for fallback
+      sessionStorage.setItem("user_token", token);
+      sessionStorage.setItem("isAuthenticated", "true");
+
+      // Explicitly set document.cookie for true cookie fallback
+      document.cookie = `user_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      document.cookie = `isAuthenticated=true; path=/; max-age=${7 * 24 * 60 * 60}`;
+
+      console.log("[OAuthHashHandler] document.cookie after setCookie:", document.cookie);
+      console.log("[OAuthHashHandler] sessionStorage user_token after save:", sessionStorage.getItem("user_token"));
+
+      // If user data is returned in the hash params, save it
+      let userStr = hashParams.get("user");
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(decodeURIComponent(userStr));
+          setJsonCookie("user", userObj, 7);
+          sessionStorage.setItem("user", JSON.stringify(userObj));
+        } catch (e) {
+          console.error("Failed to parse user data from URL:", e);
+        }
+      }
+
+      // Dispatch authChanged event
+      window.dispatchEvent(new CustomEvent("authChanged"));
 
       // Clear token from URL to keep it clean and prevent re-processing
       window.history.replaceState(
