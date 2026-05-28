@@ -13,7 +13,7 @@ import {
   changePasswordAPI,
   deleteDoctorAccountAPI,
 } from "./mockAPI";
-import { getJsonCookie } from "./cookieUtils";
+import { getJsonCookie, deleteCookie } from "./cookieUtils";
 import { usePageCache } from "./PageCacheContext";
 import "../css/Settingsmaincontent.css";
 
@@ -290,6 +290,15 @@ const Settings = () => {
           confirmPassword: "",
         });
         setPasswordStrength(0);
+
+        // Auto logout after successful password change
+        setTimeout(() => {
+          deleteCookie("user_token");
+          deleteCookie("user");
+          deleteCookie("isAuthenticated");
+          window.dispatchEvent(new CustomEvent("authChanged"));
+          navigate("/login");
+        }, 1500);
       } else {
         const fieldErrors = res.errors ? Object.values(res.errors).flat() : [];
         setPasswordFeedback({
