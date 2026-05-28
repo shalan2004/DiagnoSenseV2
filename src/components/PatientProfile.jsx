@@ -4408,30 +4408,49 @@ const PatientProfile = () => {
                 comparativeLoadedFor !== null &&
                 comparativeData.length === 0 && (
                   <div style={{ textAlign: "center", padding: "64px 24px" }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>
-                      📊
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+                      <svg
+                        width="56"
+                        height="56"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#8A94A6"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ opacity: 0.6 }}
+                      >
+                        <line x1="3" y1="3" x2="3" y2="21" />
+                        <line x1="3" y1="21" x2="21" y2="21" />
+                        <polyline points="7 16 11 11 15 14 20 7" />
+                        <circle cx="20" cy="7" r="1.5" fill="#8A94A6" stroke="none" />
+                        <circle cx="15" cy="14" r="1.5" fill="#8A94A6" stroke="none" />
+                        <circle cx="11" cy="11" r="1.5" fill="#8A94A6" stroke="none" />
+                        <circle cx="7" cy="16" r="1.5" fill="#8A94A6" stroke="none" />
+                      </svg>
                     </div>
                     <h3
                       style={{
                         fontSize: "17px",
                         fontWeight: 700,
-                        color: "#0E1A34",
-                        marginBottom: "8px",
+                        color: "var(--dm-text-primary, #0E1A34)",
+                        marginBottom: "12px",
                       }}
                     >
-                      No Analysis Data Available
+                      No Comparative Analysis Data Available
                     </h3>
                     <p
                       style={{
                         fontSize: "14px",
-                        color: "#8A94A6",
-                        maxWidth: "380px",
+                        lineHeight: "1.5",
+                        color: "var(--dm-text-muted, #8A94A6)",
+                        maxWidth: "400px",
                         margin: "0 auto",
                       }}
                     >
-                      No comparative analysis data has been generated for this
-                      patient yet. Add lab reports across multiple visits to see
-                      trend charts here.
+                      Comparative analysis data has not been generated for this
+                      patient yet. Add lab reports across multiple visits to view
+                      trend charts and comparisons here.
                     </p>
                   </div>
                 )}
