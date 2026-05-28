@@ -923,11 +923,11 @@ body {
     width: 100%;
     box-sizing: border-box;
     gap: 16px;
-    margin-bottom: 24px;
-    background: white;
-    padding: 12px 24px;
-    border-radius: 15px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 0;
+    background: transparent;
+    padding: 0 8px;
+    border-radius: 0;
+    box-shadow: none;
     justify-content: space-between;
     align-items: center;
     flex-wrap: nowrap;
@@ -972,9 +972,15 @@ body {
 .tab-nav-wrapper {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     margin-bottom: 24px;
     position: relative;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+    width: 100%;
 }
 
 /* Override tab-nav — remove margin since wrapper handles it */
@@ -999,40 +1005,35 @@ body {
 }
 
 /* Scroll arrow buttons */
-.tab-scroll-btn {
+.pp-tab-scroll-btn {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    /* prevents button from collapsing */
-    border-radius: 8px;
-    border: 1px solid #E6EAF2;
-    background: #ffffff;
-    /* ← explicit white background */
-    color: #3A4560;
-    /* ← explicit dark color for SVG inheritance */
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    border: 1px solid rgba(42, 102, 255, 0.18);
+    background: #F8FAFF;
+    color: #2A66FF;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
 }
 
-.tab-scroll-btn svg {
-    stroke: #3A4560;
-    /* ← explicit stroke so it's never white */
+.pp-tab-scroll-btn i {
+    font-size: 16px;
+    line-height: 1;
+    color: currentColor;
     display: block;
 }
 
-.tab-scroll-btn:hover {
-    background: #E9F0FF;
-    border-color: #2A66FF;
-    color: #2A66FF;
-}
-
-.tab-scroll-btn:hover svg {
-    stroke: #2A66FF;
+.pp-tab-scroll-btn:hover {
+    background: rgba(42, 102, 255, 0.12);
+    border-color: rgba(42, 102, 255, 0.3);
 }
 
 /* Content area layout and spacing */
@@ -3513,9 +3514,25 @@ button.pp-note-delete-btn:hover {
 }
 
 /* ── Tab nav ── */
-[data-theme="dark"] .content-layer .tab-nav {
+[data-theme="dark"] .tab-nav-wrapper {
     background: var(--dm-bg-card);
     box-shadow: var(--dm-shadow-card);
+}
+
+[data-theme="dark"] .content-layer .tab-nav {
+    background: transparent;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .pp-tab-scroll-btn {
+    background: transparent;
+    border-color: var(--dm-border-color);
+    color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .pp-tab-scroll-btn:hover {
+    background: var(--dm-hover-bg);
+    color: var(--dm-text-primary);
 }
 
 [data-theme="dark"] .tab-btn {
@@ -4113,10 +4130,27 @@ button.pp-note-delete-btn:hover {
 }
 
 /* Tab Bar Navigation */
-[data-theme="dark"] .content-layer .tab-nav {
+[data-theme="dark"] .tab-nav-wrapper {
     background: var(--dm-bg-card) !important;
     box-shadow: var(--dm-shadow-sm) !important;
     border: 1px solid var(--dm-border-color);
+}
+
+[data-theme="dark"] .content-layer .tab-nav {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none;
+}
+
+[data-theme="dark"] .pp-tab-scroll-btn {
+    background: transparent;
+    border-color: var(--dm-border-color);
+    color: var(--dm-text-secondary);
+}
+
+[data-theme="dark"] .pp-tab-scroll-btn:hover {
+    background: var(--dm-hover-bg);
+    color: var(--dm-text-primary);
 }
 
 [data-theme="dark"] .tab-btn {
@@ -4133,14 +4167,14 @@ button.pp-note-delete-btn:hover {
     color: #7ca3ff;
 }
 
-[data-theme="dark"] .tab-scroll-btn {
+[data-theme="dark"] .pp-tab-scroll-btn {
     background: var(--dm-bg-card) !important;
     border-color: var(--dm-border-color) !important;
     color: var(--dm-text-primary) !important;
 }
 
-[data-theme="dark"] .tab-scroll-btn svg {
-    stroke: var(--dm-text-primary) !important;
+[data-theme="dark"] .pp-tab-scroll-btn i {
+    color: var(--dm-text-primary) !important;
 }
 
 /* Card Surfaces & Containers */

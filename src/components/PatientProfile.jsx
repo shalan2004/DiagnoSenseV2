@@ -161,6 +161,23 @@ const PatientProfile = () => {
   };
 
   useEffect(() => {
+    const el = tabNavRef.current;
+    if (!el) return;
+    const activeBtn = el.querySelector(".tab-btn.active");
+    if (activeBtn) {
+      const elRect = el.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      // Only scroll if the button is not fully visible
+      if (btnRect.left < elRect.left || btnRect.right > elRect.right) {
+        const scrollPos = activeBtn.offsetLeft - el.clientWidth / 2 + activeBtn.clientWidth / 2;
+        el.scrollTo({ left: scrollPos, behavior: "smooth" });
+      }
+    }
+    // Always check buttons after a small delay to allow DOM to settle
+    setTimeout(checkScrollButtons, 300);
+  }, [activeTab]);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (
         avatarMenuRef.current &&
@@ -1900,25 +1917,15 @@ const PatientProfile = () => {
 
         <div className="container">
           <div className="tab-nav-wrapper">
-            {/* {showBack && (
+            {showBack && (
               <button
-                className="tab-scroll-btn"
+                className="pp-tab-scroll-btn"
                 onClick={() => scrollTabs("back")}
+                aria-label="Scroll left"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
+                <i className="bi bi-chevron-left"></i>
               </button>
-            )} */}
+            )}
 
             <nav
               className="tab-nav"
@@ -1963,25 +1970,15 @@ const PatientProfile = () => {
               </button>
             </nav>
 
-            {/* {showNext && (
+            {showNext && (
               <button
-                className="tab-scroll-btn"
+                className="pp-tab-scroll-btn"
                 onClick={() => scrollTabs("next")}
+                aria-label="Scroll right"
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                <i className="bi bi-chevron-right"></i>
               </button>
-            )} */}
+            )}
           </div>
           <div
             className={`tab-content ${activeTab === "overview" ? "active" : ""
