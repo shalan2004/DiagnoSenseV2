@@ -530,6 +530,20 @@ export const getDecisionSupportAPI = async (patientId) => {
   });
 };
 
+/**
+ * POST /api/v1/patients/{patientId}/re-analyze
+ * Triggers AI re-analysis for Decision Support on patients created under a
+ * Basic plan that lacked Decision Support at analysis time.
+ * Called only after a successful upgrade / pay-per-use for the 'decision' feature.
+ *
+ * @param {number|string} patientId
+ */
+export const reAnalyzePatientDecisionSupportAPI = async (patientId) => {
+  return await apiCall(`/api/v1/patients/${patientId}/re-analyze`, {
+    method: 'POST',
+  });
+};
+
 
 export const getPatientActivitiesAPI = async (patientId, page = 1) => {
   return await apiCall(`/api/v1/patients/${patientId}/activities?page=${page}&limit=10`, {

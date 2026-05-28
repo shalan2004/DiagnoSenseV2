@@ -11,6 +11,7 @@ import {
   deleteKeyPointAPI,
   updatePatientStatusAPI,
   getDecisionSupportAPI,
+  reAnalyzePatientDecisionSupportAPI,
   getPatientActivitiesAPI,
   getComparativeAnalysisAPI,
   sendChatbotMessageAPI,
@@ -573,14 +574,35 @@ const PatientProfile = () => {
         console.log("[PatientProfile] Stripe success received.");
         refreshSubscriptionCtx();
         refreshCreditsCtx();
-        if (pendingFeatureToOpen === 'decision') fetchDecisionSupport();
-        // Chatbot state handles itself via shouldShowLockedChatbot
+        if (pendingFeatureToOpen === 'decision') {
+          // Stripe popup path: upgrade/pay-per-use confirmed via Stripe checkout.
+          // Trigger re-analysis for old patients that never had Decision Support.
+          triggerReAnalyzeAndPoll();
+        }
+        if (pendingFeatureToOpen === 'chatbot') {
+          // Stripe popup path for DiagnoBot upgrade.
+          // Seed the welcome message so the chatbot opens and locked overlay
+          // disappears as soon as subscription context re-renders with the new plan.
+          setIsChatOpen(true);
+          setChatMessages((prev) => {
+            if (prev.length > 0) return prev; // already seeded
+            const user = (typeof getJsonCookie === 'function')
+              ? (getJsonCookie('user') ?? {})
+              : {};
+            const doctorName = user?.name || user?.user?.name || 'Doctor';
+            return [{
+              type: 'ai',
+              text: `Hello Dr. ${doctorName}, DiagnoBot is now unlocked! How can I assist you today?`,
+            }];
+          });
+        }
         setIsUpgrading(false);
         setIsUpgradeConfirmOpen(false);
       }
     };
     window.addEventListener('message', handleStripeMessage);
     return () => window.removeEventListener('message', handleStripeMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshSubscriptionCtx, refreshCreditsCtx, pendingFeatureToOpen]);
 
   const initiateUpgrade = (planName, targetType, feature) => {
@@ -646,7 +668,33 @@ const PatientProfile = () => {
           refreshNotificationsCtx?.();
 
           if (pendingFeatureToOpen === "decision") {
-            await fetchDecisionSupport();
+            // No-Stripe-redirect path: upgrade/pay-per-use resolved immediately
+            // (e.g. wallet payment). Trigger re-analysis for old patients.
+            triggerReAnalyzeAndPoll();
+          }
+
+          if (pendingFeatureToOpen === "chatbot") {
+            // No-Stripe-redirect path for DiagnoBot (e.g. wallet / PPU).
+            // Subscription data has just been refreshed above, so canUseChatbotNow
+            // will be true on the next render. Seed the welcome message and open
+            // the chat panel so the user can start typing immediately.
+            setIsChatOpen(true);
+            setChatMessages((prev) => {
+              if (prev.length > 0) return prev; // already seeded by toggleChat
+              const user = (typeof getJsonCookie === 'function')
+                ? (getJsonCookie('user') ?? {})
+                : {};
+              const doctorName = user?.name || user?.user?.name || 'Doctor';
+              const patientName =
+                overviewData?.name ??
+                overviewData?.patientName ??
+                overviewData?.full_name ??
+                'this patient';
+              return [{
+                type: 'ai',
+                text: `Hello Dr. ${doctorName}, DiagnoBot is now unlocked! How can I assist you with ${patientName}'s case today?`,
+              }];
+            });
           }
 
           setIsUpgradeConfirmOpen(false);
@@ -954,10 +1002,77 @@ const PatientProfile = () => {
     useState(false);
   const hasTriggeredDecisionSupportGeneration = useRef(false);
 
-  const fetchDecisionSupport = async () => {
+  // ── Re-analysis (upgrade/pay-per-use path for old patients) ──
+  // Guard ref: prevents duplicate POST /re-analyze calls from React Strict Mode
+  // or rapid re-renders while a request is already in flight.
+  const reAnalyzeInFlightRef = useRef(false);
+
+  /**
+   * Called after a successful upgrade/pay-per-use for the 'decision' feature.
+   * POSTs /re-analyze once, then kicks off the existing polling loop via
+   * fetchDecisionSupport so the caller doesn't need to know the internals.
+   */
+  const triggerReAnalyzeAndPoll = async () => {
+    if (!patientId) return;
+    if (reAnalyzeInFlightRef.current) {
+      console.log('[re-analyze] Request already in-flight — skipping duplicate call.');
+      return;
+    }
+
+    reAnalyzeInFlightRef.current = true;
+    console.log('[re-analyze] Triggering POST /re-analyze for patientId:', patientId);
+
+    // Show the Decision Support section loader immediately
+    setDecisionSupportLoading(true);
+    setDecisionSupportError(null);
+
+    try {
+      const res = await reAnalyzePatientDecisionSupportAPI(patientId);
+      console.log('[re-analyze] POST response:', res);
+
+      // 401 — session expired
+      const is401 =
+        res?.message?.toLowerCase().includes('unauthenticated') ||
+        res?.message?.includes('401');
+      if (is401) {
+        setDecisionSupportError(res.message || 'Session expired. Please log in again.');
+        setDecisionSupportLoading(false);
+        navigate('/login');
+        return;
+      }
+
+      if (!res || res.success === false) {
+        // Backend returned a failure — show the message, keep the previous UI
+        const msg = res?.message || 'Failed to start Decision Support analysis.';
+        console.error('[re-analyze] Backend returned failure:', msg);
+        setDecisionSupportError(msg);
+        setDecisionSupportLoading(false);
+        return;
+      }
+
+      // POST succeeded — reset any stale loaded state so the poller runs fresh
+      setDecisionSupportLoadedFor(null);
+
+      // Hand off to the existing polling function which already handles
+      // still_processing loop, error states and final data rendering.
+      // Pass isReAnalyze=true so the loading-guard inside fetchDecisionSupport
+      // is skipped (we already set loading=true above).
+      await fetchDecisionSupport(true);
+    } catch (err) {
+      console.error('[re-analyze] Unexpected error:', err);
+      setDecisionSupportError('Failed to start Decision Support analysis.');
+      setDecisionSupportLoading(false);
+    } finally {
+      reAnalyzeInFlightRef.current = false;
+    }
+  };
+
+  const fetchDecisionSupport = async (isReAnalyze = false) => {
     if (!patientId) return;
 
-    if (decisionSupportLoading) return;
+    // Skip the in-progress guard when called from re-analyze flow because
+    // triggerReAnalyzeAndPoll already set loading=true before delegating here.
+    if (!isReAnalyze && decisionSupportLoading) return;
 
     setDecisionSupportLoading(true);
     setDecisionSupportError(null);
@@ -1288,9 +1403,21 @@ const PatientProfile = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // ── Plan-access & historical data helpers ──
-  const isPayPerUse = subscriptionData?.billing_mode === "pay_per_use";
+
+  // Normalize billing_mode to handle all backend variants:
+  //   "pay-per-use" (hyphen  — current backend format)
+  //   "pay_per_use" (underscore — older assumption)
+  //   "ppu"         (short form)
+  // Any casing is also accepted via .toLowerCase().
+  const _rawBillingMode = String(subscriptionData?.billing_mode || "").toLowerCase();
+  const _normalizedBillingMode = _rawBillingMode.replaceAll("_", "-");
+  const isPayPerUse =
+    _normalizedBillingMode === "pay-per-use" ||
+    _normalizedBillingMode === "ppu";
+
   const planNameLower = (subscriptionData?.plan_name || "").toLowerCase();
 
+  // Decision Support: available on Pro, Premium, or any Pay-Per-Use mode.
   const canGenerateDecisionSupportNow = Boolean(
     isPayPerUse || ["pro", "premium"].includes(planNameLower),
   );
@@ -1304,12 +1431,19 @@ const PatientProfile = () => {
   const shouldShowLockedDecisionSupport =
     !hasExistingDecisionSupportData && !canAccessDecisionSupportNow;
 
-  const canUseChatbotNow = Boolean(isPayPerUse || planNameLower === "premium");
+  // DiagnoBot: available on Premium or any Pay-Per-Use mode.
+  // canUseChatbotNow derives from the normalized isPayPerUse above,
+  // so "pay-per-use", "pay_per_use", and "ppu" all unlock the chatbot.
+  const canUseChatbotNow = Boolean(
+    isPayPerUse || planNameLower === "premium",
+  );
   const hasExistingChatbotAccessOrData = Boolean(
     Array.isArray(chatMessages) && chatMessages.length > 1,
   );
+  // Show locked overlay only when the user genuinely cannot access DiagnoBot.
+  // If canUseChatbotNow is true (PPU or Premium), never show the lock.
   const shouldShowLockedChatbot =
-    !hasExistingChatbotAccessOrData && !canUseChatbotNow;
+    !canUseChatbotNow && !hasExistingChatbotAccessOrData;
 
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
