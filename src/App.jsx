@@ -58,7 +58,7 @@ const OAuthHashHandler = () => {
     const hash = window.location.hash || "";
     if (!hash) return;
 
-    console.log("[OAuthHashHandler] current hash:", hash);
+    console.log("[OAuthHashHandler] hash detected:", Boolean(hash));
 
     const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
     const token =
@@ -67,47 +67,69 @@ const OAuthHashHandler = () => {
       hashParams.get("user_token");
 
     if (token) {
-      console.log("[OAuthHashHandler] token detected:", token);
+      console.log("[OAuthHashHandler] token detected:", Boolean(token));
 
       // Store token using utility
       setCookie("user_token", token, 7);
       setCookie("isAuthenticated", "true", 7);
       
-      // Explicitly set in sessionStorage for fallback
+      // Explicitly set in sessionStorage and localStorage for fallback
       sessionStorage.setItem("user_token", token);
       sessionStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("user_token", token);
+      localStorage.setItem("isAuthenticated", "true");
 
       // Explicitly set document.cookie for true cookie fallback
       document.cookie = `user_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`;
       document.cookie = `isAuthenticated=true; path=/; max-age=${7 * 24 * 60 * 60}`;
 
-      console.log("[OAuthHashHandler] document.cookie after setCookie:", document.cookie);
-      console.log("[OAuthHashHandler] sessionStorage user_token after save:", sessionStorage.getItem("user_token"));
-
-      // If user data is returned in the hash params, save it
-      let userStr = hashParams.get("user");
-      if (userStr) {
+      const fetchProfile = async () => {
         try {
-          const userObj = JSON.parse(decodeURIComponent(userStr));
-          setJsonCookie("user", userObj, 7);
-          sessionStorage.setItem("user", JSON.stringify(userObj));
-        } catch (e) {
-          console.error("Failed to parse user data from URL:", e);
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+          const response = await fetch(`${API_BASE_URL}/api/v1/doctors/profile/edit`, {
+            method: "GET",
+            headers: {
+              "Accept": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              const doctorData = result.data;
+              console.log("[OAuthHashHandler] profile loaded:", Boolean(doctorData?.id));
+              
+              setJsonCookie("user", doctorData, 7);
+              sessionStorage.setItem("user", JSON.stringify(doctorData));
+              localStorage.setItem("user", JSON.stringify(doctorData));
+
+              window.dispatchEvent(new CustomEvent("authChanged"));
+
+              window.history.replaceState(
+                null,
+                "",
+                window.location.pathname + window.location.search
+              );
+
+              navigate("/dashboard", { replace: true });
+            } else {
+              console.error("[OAuthHashHandler] Invalid profile data format");
+            }
+          } else if (response.status === 401) {
+            setCookie("user_token", "", -1);
+            sessionStorage.removeItem("user_token");
+            localStorage.removeItem("user_token");
+            navigate("/login", { replace: true });
+          } else {
+            console.error("[OAuthHashHandler] Failed to load profile:", response.status);
+          }
+        } catch (error) {
+          console.error("[OAuthHashHandler] Error fetching profile (safe log)");
         }
-      }
+      };
 
-      // Dispatch authChanged event
-      window.dispatchEvent(new CustomEvent("authChanged"));
-
-      // Clear token from URL to keep it clean and prevent re-processing
-      window.history.replaceState(
-        null,
-        "",
-        window.location.pathname + window.location.search
-      );
-
-      // Redirect to dashboard
-      navigate("/dashboard", { replace: true });
+      fetchProfile();
     }
   }, [navigate]);
 
