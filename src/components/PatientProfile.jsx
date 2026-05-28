@@ -600,6 +600,7 @@ const PatientProfile = () => {
           // Stripe popup path for DiagnoBot upgrade.
           // Seed the welcome message so the chatbot opens and locked overlay
           // disappears as soon as subscription context re-renders with the new plan.
+          triggerReAnalyzeAndPoll();
           setIsChatOpen(true);
           setChatMessages((prev) => {
             if (prev.length > 0) return prev; // already seeded
@@ -695,6 +696,7 @@ const PatientProfile = () => {
             // Subscription data has just been refreshed above, so canUseChatbotNow
             // will be true on the next render. Seed the welcome message and open
             // the chat panel so the user can start typing immediately.
+            triggerReAnalyzeAndPoll();
             setIsChatOpen(true);
             setChatMessages((prev) => {
               if (prev.length > 0) return prev; // already seeded by toggleChat
