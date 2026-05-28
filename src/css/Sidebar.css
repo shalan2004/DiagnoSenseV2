@@ -32,6 +32,9 @@
 .sidebar.collapsed .sidebar-header {
      padding: 0;
      justify-content: center;
+     align-items: center;
+     height: 78px;
+     overflow: visible;
 }
 
 .sidebar-logo {
@@ -46,7 +49,10 @@
 
 .sidebar.collapsed .sidebar-logo {
      justify-content: center;
-     width: 100%;
+     align-items: center;
+     width: 72px;
+     height: 78px;
+     overflow: visible;
 }
 
 .logo-expanded-container {
@@ -68,7 +74,8 @@
      margin: 0 auto 0 calc(50% - 70px);
 }
 
-.sidebar.collapsed .logo-expanded-container {
+.sidebar.collapsed .logo-expanded-container,
+.sidebar.collapsed .logo-expanded {
      display: none;
 }
 
@@ -83,7 +90,14 @@
 }
 
 .sidebar.collapsed .sidebar-logo-slot {
-     display: flex;
+     display: block;
+     position: absolute;
+     left: 50%;
+     top: 50%;
+     transform: translate(-50%, -58%);
+     width: 44px;
+     height: 44px;
+     overflow: visible;
 }
 
 /* Center both logo and expand button onto the same spot */
@@ -97,8 +111,8 @@
 }
 
 .sidebar-logo-slot .logo-collapsed {
-     width: 32px;
-     height: 32px;
+     width: 34px;
+     height: 34px;
      object-fit: contain;
      opacity: 1;
      visibility: visible;
@@ -122,9 +136,11 @@
      transition: all 0.25s ease;
 }
 
-.logo-expand-btn img {
-     width: 30px;
-     height: 30px;
+.logo-expand-btn img,
+.logo-expand-btn svg {
+     width: 18px;
+     height: 18px;
+     object-fit: contain;
 }
 
 /* Hover logic for swap and background matching */
