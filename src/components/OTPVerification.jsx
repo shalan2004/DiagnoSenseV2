@@ -22,7 +22,9 @@ const OTPVerification = ({
   onSessionExpired,
   mode = "email_verification",
 }) => {
-  const [otp, setOtp] = useState("");
+  const [otpValues, setOtpValues] = useState(Array(6).fill(""));
+  const otp = otpValues.join("");
+  const inputRefs = useRef([]);
   //   const [userIdentity, setUserIdentity] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +62,59 @@ const OTPVerification = ({
       }
     }
   }, [mode, onSessionExpired]);
+
+  const handleChange = (index, value) => {
+    const numericValue = value.replace(/[^0-9]/g, "");
+    if (!numericValue && value !== "") return; // Allow empty or numeric
+
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = numericValue.slice(-1); // Take the last digit if multiple
+    setOtpValues(newOtpValues);
+
+    if (numericValue && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!otpValues[index] && index > 0) {
+        e.preventDefault();
+        const newOtpValues = [...otpValues];
+        newOtpValues[index - 1] = "";
+        setOtpValues(newOtpValues);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+    if (!pastedData) return;
+
+    const newOtpValues = [...otpValues];
+    let lastFilledIndex = -1;
+    for (let i = 0; i < 6; i++) {
+      if (pastedData[i]) {
+        newOtpValues[i] = pastedData[i];
+        lastFilledIndex = i;
+      }
+    }
+    setOtpValues(newOtpValues);
+
+    if (lastFilledIndex < 5 && lastFilledIndex >= 0) {
+      inputRefs.current[lastFilledIndex + 1]?.focus();
+    } else if (lastFilledIndex === 5) {
+      inputRefs.current[5]?.focus();
+    }
+  };
 
   const content = {
     email_verification: {
@@ -138,20 +193,48 @@ const OTPVerification = ({
       </div>
 
       <form onSubmit={handleVerify}>
-        <div className="form-group">
-          <input
-            type="text"
-            placeholder="Enter OTP Code"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            required
-            maxLength="6"
-            style={{
-              textAlign: "center",
-              fontSize: "24px",
-              letterSpacing: "8px",
-            }}
-          />
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '24px', flexWrap: 'nowrap' }}>
+          {otpValues.map((value, index) => (
+            <input
+              key={index}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              value={value}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              ref={(el) => (inputRefs.current[index] = el)}
+              aria-label={`OTP digit ${index + 1}`}
+              required={index === 0} // Only make first required to leverage native form validation loosely, or maybe don't need required attribute directly on all
+              style={{
+                flex: '0 0 auto',
+                width: '48px',
+                height: '56px',
+                margin: 0,
+                padding: 0,
+                textAlign: 'center',
+                fontSize: '24px',
+                fontWeight: 'bold',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                background: '#ffffff',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                outline: 'none',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+                color: '#1f2937'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--primary, #3b82f6)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.2)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+              }}
+            />
+          ))}
         </div>
 
         {error && <div className="error-message">{error}</div>}
