@@ -48,10 +48,11 @@ const apiCall = async (endpoint, options = {}) => {
           deleteCookie('isAuthenticated');
         }
 
-       return {
+        return {
           success: false,
           message: data.message || 'Something went wrong',
-          errors: data.errors || data.data || null,
+          errors: data.errors || null,
+          data: data.data || null,
         };
       }
 

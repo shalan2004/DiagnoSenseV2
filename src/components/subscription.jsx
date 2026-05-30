@@ -37,6 +37,7 @@ function Subscription() {
   const {
     subscriptionData,
     isSubLoading,
+    backendMessage,
     refreshSubscription,
     credits,
     isCreditsLoading,
@@ -318,7 +319,7 @@ function Subscription() {
         // ── Cache the plans ──
         setCache("subscription_plans", result.data);
       } else {
-        setPlansError(result.message || "Failed to load plans");
+        setPlansError(result.message);
       }
     };
 
@@ -344,13 +345,13 @@ function Subscription() {
       setIsCancelledLocally(true);
       setSelectedPlanId(null);
       localStorage.removeItem("selectedPlanId");
-      refreshSubscription();
-      refreshCredits();
+      await refreshSubscription();
+      await refreshCredits();
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
       if (activeTab === "billing") {
-        fetchTransactions(true);
+        fetchTransactions(txCurrentPage, true);
       }
-      fetchAndToastLatest();
+      refreshNotifications(); // only refresh count — no toast
     }
   };
 
@@ -377,14 +378,8 @@ function Subscription() {
 
       setSubscribingPlanId(null);
       setPendingPlan(null);
-
-      //  showResultModal(
-      //   result.message || (result.success ? "Successfully switched to Pay-Per-Use!" : "Failed to switch to Pay-Per-Use."),
-      //   result.success
-      // );
-
       if (!result.success) {
-        showToast(result.message || "Failed to switch to Pay-Per-Use.", false);
+        showToast(result.message, false);
       }
 
       if (result.success) {
@@ -412,13 +407,9 @@ function Subscription() {
     setSubscribingPlanId(null);
     setPendingPlan(null);
 
-    // showResultModal(
-    //   result.message || (result.success ? "Successfully subscribed to the plan!" : "Failed to subscribe to the plan."),
-    //   result.success
-    // );
 
     if (!result.success) {
-      showToast(result.message || "Failed to subscribe to the plan.", false);
+      showToast(result.message, false);
     }
 
     if (result.success) {
@@ -451,14 +442,9 @@ function Subscription() {
     setChargeHint("");
   };
 
-  const doCharge = async () => {
+const doCharge = async () => {
     const val = parseFloat(chargeAmt);
-    if (!val || val < 50) {
-      Swal.fire({
-        icon: "warning",
-        title: "Minimum Amount",
-        text: "The minimum charge amount is 50.",
-      });
+    if (!val || val <= 0) {
       return;
     }
 
@@ -470,7 +456,14 @@ function Subscription() {
     console.log("Charge result:", result);
     setIsCharged(false);
 
-    if (!result.success) {
+      if (!result.success) {
+      const backendError =
+        result.data?.balance?.[0] ||
+        result.errors?.balance?.[0] ||
+        result.errors?.message?.[0] ||
+        result.message ||
+        "Failed to initiate wallet charge.";
+      showToast(backendError, false);
       return;
     }
 
@@ -504,10 +497,12 @@ function Subscription() {
           refreshSubscription();
           refreshCredits();
 
-          // Refresh transactions automatically if on billing tab
           if (activeTab === "billing") {
             fetchTransactions(txCurrentPage, true);
           }
+
+          // Show backend notification exactly as used after subscribe actions
+          fetchAndToastLatest();
         }
       }, 500);
     }
@@ -749,7 +744,7 @@ function Subscription() {
                       <div>
                         <div className="banner-plan-row">
                           <span className="banner-plan-name">
-                            {subscriptionData?.plan_name || "Unknown"} Plan
+                            {subscriptionData?.plan_name} Plan
                           </span>
                           <span className={badgeClass}>
                             <span className={dotClass}></span> {displayStatus}
@@ -833,7 +828,7 @@ function Subscription() {
                 <div
                   style={{ padding: "8px 0", color: "var(--text-secondary)" }}
                 >
-                  No active plan
+                  {backendMessage || "No active plan found. Please select a plan below to get started."}
                 </div>
               )}
             </div>
@@ -912,7 +907,7 @@ function Subscription() {
                       >
                         <div className="plan-card" style={{ height: "100%" }}>
                           <div className="plan-name">{p.name}</div>
-                          <span className="plan-price">E£ {p.price}</span>
+                          <span className="plan-price">EGP {p.price}</span>
                           <div className="plan-period">{p.period}</div>
                           <div className="plan-tagline"></div>
                           <div className="plan-feats">
@@ -975,7 +970,7 @@ function Subscription() {
                         )}
                         <div className="plan-name">{plan.name}</div>
                         <span className="plan-price">
-                          E£ {plan.price.toLocaleString()}
+                          EGP {plan.price.toLocaleString()}
                         </span>
                         <div className="plan-period">
                           per{" "}
@@ -1044,7 +1039,7 @@ function Subscription() {
                           <div className="ppu-lbl">Pay-per-use</div>
                           <div className="ppu-sub">Most popular plan</div>
                           <div className="ppu-price">
-                            E£ 20 <em>/ file</em>
+                            EGP 20 <em>/ file</em>
                           </div>
                         </div>
                         <div className="ppu-right">
@@ -1115,7 +1110,7 @@ function Subscription() {
                         <div className="ppu-lbl">Pay-per-use</div>
                         <div className="ppu-sub">Most popular plan</div>
                         <div className="ppu-price">
-                          E£ 20 <em>/ file</em>
+                          EGP 20 <em>/ file</em>
                         </div>
                       </div>
                       <div className="ppu-right">
@@ -1259,8 +1254,8 @@ function Subscription() {
                       "You are currently using the Pay-Per-Use plan."}
                   </div>
                   <div className="u-lbl">
-                    Each file costs E£ {subscriptionData?.price_per_file ?? 20}.
-                    Usage tracking is per-file.
+                    Each file costs EGP {subscriptionData?.price_per_file ?? 20}
+                    . Usage tracking is per-file.
                   </div>
                 </div>
               ) : (
@@ -1307,7 +1302,7 @@ function Subscription() {
                       className={`amt ${selectedAmt === amt ? "sel" : ""}`}
                       onClick={() => pickAmt(amt)}
                     >
-                      E£ {amt}
+                      EGP {amt}
                     </button>
                   ))}
                 </div>
@@ -1318,11 +1313,11 @@ function Subscription() {
                       className={`amt ${selectedAmt === amt ? "sel" : ""}`}
                       onClick={() => pickAmt(amt)}
                     >
-                      E£ {amt}
+                      EGP {amt}
                     </button>
                   ))}
                   <div className="inp-wrap">
-                    <span className="inp-pfx">E£</span>
+                    <span className="inp-pfx">EGP</span>
                     <input
                       type="number"
                       className="inp"
@@ -1387,7 +1382,7 @@ function Subscription() {
                           <tr key={tx.id}>
                             <td className="td-d">{tx.date}</td>
                             <td className="td-desc">{tx.description}</td>
-                            <td className="td-amt">E£ {tx.amount}</td>
+                            <td className="td-amt">EGP {tx.amount}</td>
                             <td>
                               <span
                                 className={
@@ -1456,8 +1451,12 @@ function Subscription() {
                   )}
 
                   <button
-                    disabled={txCurrentPage >= txLastPage || transactions.length === 0}
-                    onClick={() => setTxCurrentPage((p) => Math.min(txLastPage, p + 1))}
+                    disabled={
+                      txCurrentPage >= txLastPage || transactions.length === 0
+                    }
+                    onClick={() =>
+                      setTxCurrentPage((p) => Math.min(txLastPage, p + 1))
+                    }
                     title="Next Page"
                   >
                     Next ▸
