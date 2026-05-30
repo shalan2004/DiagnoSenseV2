@@ -146,12 +146,12 @@ const AddPatient = () => {
   );
 
   const isStep1Valid = (() => {
-    const isFullNameValid = formData.fullName.trim().length > 0;
-    const isContactValid = formData.contact.trim().length > 0;
-    const isNationalIdValid = formData.national_id.trim().length === 14;
+    const isFullNameValid = String(formData.fullName || "").trim().length > 0;
+    const isContactValid = String(formData.contact || "").trim().length > 0;
+    const isNationalIdValid = String(formData.national_id || "").trim().length === 14;
     let isDobValid = false;
     if (formData.date_of_birth) {
-      const datePart = formData.date_of_birth.split('T')[0];
+      const datePart = String(formData.date_of_birth).split('T')[0];
       const parts = datePart.split('-');
       if (parts.length === 3) {
         const [y, m, d] = parts;
@@ -173,7 +173,7 @@ const AddPatient = () => {
   });
 
   // Step 2 is valid unless surgeries=YES and the name field is empty
-  const isStep2Valid = !(hasSurgeries === true && !formData.surgeryText.trim());
+  const isStep2Valid = !(hasSurgeries === true && !String(formData.surgeryText || "").trim());
 
   console.log("[step2] surgeries validation", {
     hasSurgeries,
@@ -629,34 +629,39 @@ const AddPatient = () => {
   };
 
   const handleStep1Next = () => {
-    let newErrors = {};
+    try {
+      let newErrors = {};
 
-    if (/\d/.test(formData.fullName)) {
-      newErrors.fullName = "Full name must contain letters only.";
-    }
-
-    if (formData.national_id && formData.national_id.length !== 14) {
-      newErrors.national_id = "National ID must be exactly 14 digits.";
-    }
-
-    if (formData.date_of_birth) {
-      const datePart = formData.date_of_birth.split('T')[0];
-      const [year, month, day] = datePart.split('-');
-      const dobDate = new Date(year, month - 1, day);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (dobDate > today) {
-        newErrors.date_of_birth = "Date of birth cannot be in the future.";
+      if (/\d/.test(formData.fullName || "")) {
+        newErrors.fullName = "Full name must contain letters only.";
       }
-    }
 
-    if (Object.keys(newErrors).length > 0) {
-      setFieldErrors((prev) => ({ ...prev, ...newErrors }));
-      return;
-    }
+      if (formData.national_id && String(formData.national_id).length !== 14) {
+        newErrors.national_id = "National ID must be exactly 14 digits.";
+      }
 
-    setFieldErrors({});
-    goToStep(2);
+      if (formData.date_of_birth) {
+        const datePart = String(formData.date_of_birth).split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        const dobDate = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (dobDate > today) {
+          newErrors.date_of_birth = "Date of birth cannot be in the future.";
+        }
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setFieldErrors((prev) => ({ ...prev, ...newErrors }));
+        return;
+      }
+
+      setFieldErrors({});
+      goToStep(2);
+    } catch (error) {
+      console.error("Step 1 Transition Error:", error);
+      setFieldErrors((prev) => ({ ...prev, _general: "An error occurred validating the step. Please check your inputs." }));
+    }
   };
 
   const handleProcess = async () => {
@@ -693,8 +698,8 @@ const AddPatient = () => {
 
       apiFormData.append("name", formData.fullName);
 
-      if (formData.contact.trim()) {
-        apiFormData.append("contact", formData.contact.trim());
+      if (String(formData.contact || "").trim()) {
+        apiFormData.append("contact", String(formData.contact || "").trim());
       }
 
       if (formData.date_of_birth) {
@@ -705,8 +710,8 @@ const AddPatient = () => {
         apiFormData.append("gender", selectedGender);
       }
 
-      if (formData.national_id.trim()) {
-        apiFormData.append("national_id", formData.national_id.trim());
+      if (String(formData.national_id || "").trim()) {
+        apiFormData.append("national_id", String(formData.national_id || "").trim());
       }
 
       if (isSmoker !== null) {
@@ -1262,29 +1267,21 @@ const AddPatient = () => {
                   <label className="form-label required">Date of Birth</label>
                   <div style={{ position: "relative" }}>
                     <DatePicker
-                      selected={
-                        formData.date_of_birth
-                          ? new Date(`${formData.date_of_birth.split('T')[0]}T00:00:00`)
-                          : null
-                      }
+                      selected={(() => {
+                        if (!formData.date_of_birth) return null;
+                        const d = new Date(`${String(formData.date_of_birth).split('T')[0]}T00:00:00`);
+                        return isNaN(d.getTime()) ? null : d;
+                      })()}
                       onChange={(date) => {
-                        if (date) {
+                        if (date && !isNaN(date.getTime())) {
                           const year = date.getFullYear();
                           const month = String(date.getMonth() + 1).padStart(2, '0');
                           const day = String(date.getDate()).padStart(2, '0');
                           handleInputChange({ target: { id: "date_of_birth", value: `${year}-${month}-${day}` } });
                         } else {
-                          if (formData.date_of_birth) {
-                            const datePart = formData.date_of_birth.split('T')[0];
-                            const parts = datePart.split('-');
-                            if (parts.length === 3) {
-                              const [y, m, d] = parts;
-                              const currDate = new Date(y, m - 1, d);
-                              const today = new Date();
-                              today.setHours(0,0,0,0);
-                              if (currDate > today) return;
-                            }
-                          }
+                          // If there's an active validation error (like invalid format or future date), 
+                          // keep the state to let the inline error persist instead of silently clearing.
+                          if (fieldErrors.date_of_birth) return;
                           handleInputChange({ target: { id: "date_of_birth", value: "" } });
                         }
                       }}
@@ -1299,19 +1296,12 @@ const AddPatient = () => {
                           const day = parseInt(parts[0], 10);
                           const month = parseInt(parts[1], 10);
                           const year = parseInt(parts[2], 10);
-                          if (year > 1000) {
-                            const typedDate = new Date(year, month - 1, day);
-                            const isValid = typedDate.getFullYear() === year && typedDate.getMonth() === month - 1 && typedDate.getDate() === day;
-                            if (isValid) {
-                              const today = new Date();
-                              today.setHours(0,0,0,0);
-                              if (typedDate > today) {
-                                const y = typedDate.getFullYear();
-                                const m = String(typedDate.getMonth() + 1).padStart(2, '0');
-                                const d = String(typedDate.getDate()).padStart(2, '0');
-                                handleInputChange({ target: { id: "date_of_birth", value: `${y}-${m}-${d}` } });
-                              }
-                            }
+                          // Forward manual types to handleInputChange for immediate validation if they resemble a full date
+                          if (year > 1000 && !isNaN(day) && !isNaN(month)) {
+                            const y = year;
+                            const m = String(month).padStart(2, '0');
+                            const d = String(day).padStart(2, '0');
+                            handleInputChange({ target: { id: "date_of_birth", value: `${y}-${m}-${d}` } });
                           }
                         }
                       }}
@@ -1930,4 +1920,46 @@ const AddPatient = () => {
   );
 };
 
-export default AddPatient;
+class FormErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Form Error Boundary Caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: "40px", color: "#EF4444", textAlign: "center", fontFamily: "sans-serif" }}>
+          <h2 style={{ marginBottom: "16px" }}>Something went wrong.</h2>
+          <p style={{ color: "#666", marginBottom: "24px" }}>The form encountered an unexpected error. Please refresh the page.</p>
+          <pre style={{ background: "#f3f4f6", padding: "16px", borderRadius: "8px", textAlign: "left", overflowX: "auto", fontSize: "14px", color: "#333" }}>
+            {this.state.error?.toString()}
+          </pre>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ marginTop: "24px", padding: "10px 20px", background: "#2A66FF", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AddPatientWrapper = (props) => (
+  <FormErrorBoundary>
+    <AddPatient {...props} />
+  </FormErrorBoundary>
+);
+
+export default AddPatientWrapper;
