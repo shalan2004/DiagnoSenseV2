@@ -162,20 +162,20 @@ const PatientCard = ({
     { id: "critical", color: "#FF5C5C", label: "Critical" },
   ];
 
-  const handleQuickStatusChange = async (e, newStatus) => {
+const handleQuickStatusChange = async (e, newStatus) => {
     e.stopPropagation();
     if (isUpdatingStatus) return;
     setIsUpdatingStatus(true);
 
-    // Optimistic UI dispatch directly triggers PatientList to re-render locally instantly
-    window.dispatchEvent(
-      new CustomEvent("patientStatusUpdated", {
-        detail: { patientId: patient.id, status: newStatus },
-      }),
-    );
-
     try {
-      await updatePatientStatusAPI(patient.id, newStatus);
+      const res = await updatePatientStatusAPI(patient.id, newStatus);
+      if (res && res.success !== false) {
+        window.dispatchEvent(
+          new CustomEvent("patientStatusUpdated", {
+            detail: { patientId: patient.id, status: newStatus },
+          }),
+        );
+      }
     } catch (err) {
       console.error("Failed to update status", err);
     } finally {
@@ -424,10 +424,10 @@ const PatientList = () => {
   const gridRef = useRef(null);
   const cardRef = useRef(null);
 
-  useEffect(() => {
-    // Invalidate cache on mount to ensure a fresh fetch when the view opens
-    invalidatePatientListCache();
-  }, [invalidatePatientListCache]);
+useEffect(() => {
+    // Always fetch fresh data when the patient list mounts
+    setPatientListDirty(true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!gridRef.current) return;
@@ -595,16 +595,11 @@ const PatientList = () => {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
     loadPatients(currentPage);
-
-    // Clear dirty flag after triggering revalidation fetch
-    if (isPatientListDirty()) {
-      setPatientListDirty(false);
-    }
+    setPatientListDirty(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, debouncedSearchTerm, activeFilter, isPatientListDirty, setPatientListDirty]);
-
+  }, [currentPage, debouncedSearchTerm, activeFilter]);
   // ── Sync status from PatientProfile updates ──
   useEffect(() => {
     const handleStatusSync = (e) => {
@@ -638,27 +633,34 @@ const PatientList = () => {
         ...meta,
       });
 
-      if (activeFilter !== "all") {
-        // Filter is active: we MUST invalidate and refetch because a status change
-        // likely moves the patient in/out of this specific filtered result set.
-        invalidatePatientListCache();
-        loadPatients(currentPage);
-      } else {
-        // No filter (All Patients): update the matching card in-place for immediate feedback
-        setPatients((prev) =>
-          prev.map((p) =>
-            String(p.id) === String(updatedId)
-              ? { ...p, status: displayStatus, ...meta }
-              : p,
-          ),
-        );
-      }
+      // Always invalidate all cached pages/filters so switching tabs never shows stale data
+      invalidatePatientListCache();
+      setPatientListDirty(true);
+
+      // Update the current view immediately (optimistic)
+      // Always update in-place immediately for instant visual feedback
+      setPatients((prev) =>
+        prev.map((p) =>
+          String(p.id) === String(updatedId)
+            ? { ...p, status: displayStatus, ...meta }
+            : p,
+        ),
+      );
+
+      // Always invalidate + refetch so switching tabs never shows stale data
+      invalidatePatientListCache();
+      loadPatients(currentPage);
+
+      // If a status filter is active, refetch because the patient may have moved out of it
+      // if (activeFilter !== "all") {
+      //   loadPatients(currentPage);
+      // }
     };
 
     window.addEventListener("patientStatusUpdated", handleStatusSync);
     return () =>
       window.removeEventListener("patientStatusUpdated", handleStatusSync);
-  }, [activeFilter, currentPage, updateCachedPatient, invalidatePatientListCache]);
+  }, [activeFilter, currentPage, updateCachedPatient]);
 
   // ── Sync next visit date from PatientProfile updates ──
   useEffect(() => {

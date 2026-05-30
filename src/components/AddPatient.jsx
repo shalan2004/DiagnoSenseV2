@@ -823,15 +823,18 @@ const AddPatient = () => {
 
         if (result.status === 401) {
           setFieldErrors({
-            _general: "Session expired or unauthorized. Please log in again.",
+            _general: result.message || result.errors || "Session expired or unauthorized. Please log in again.",
           });
           setIsProcessing(false);
           return;
         }
 
         if (result.status === 403 || result.message === "This action is unauthorized.") {
+          // setFieldErrors({
+          //   _general: "Subscription required to add new patients.",
+          // });
           setFieldErrors({
-            _general: "Subscription required to add new patients.",
+            _general: result.message || "Subscription required to add new patients.",
           });
           setIsProcessing(false);
           return;

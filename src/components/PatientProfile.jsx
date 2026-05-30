@@ -5656,15 +5656,29 @@ const PatientProfile = () => {
       </div>
 
       {/* Chatbot Trigger */}
-      <div className="chatbot-trigger" onClick={toggleChat}>
+      <div className="chatbot-trigger" onClick={(e) => { e.stopPropagation(); toggleChat(); }}>
         <div className="chatbot-tooltip">DiagnoBot</div>
         <img src={diagnobotImg} alt="DiagnoBot" className="chatbot-icon" />
       </div>
+
+      {/* Chatbot Overlay — closes panel when clicking outside */}
+      {isChatOpen && (
+        <div
+          onClick={toggleChat}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "transparent",
+          }}
+        />
+      )}
 
       {/* Chatbot Panel */}
       <div
         className={`chatbot-panel ${isChatOpen ? "active" : ""}`}
         id="chatPanel"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="chat-header">
           <div>
