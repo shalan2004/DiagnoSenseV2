@@ -7,7 +7,7 @@ import {
 } from "./mockAPI";
 import { getCookie } from "./cookieUtils.js";
 
-const COUNTDOWN_SECONDS = 10 * 60; 
+const COUNTDOWN_SECONDS = 10 * 60;
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -218,12 +218,12 @@ const OTPVerification = ({
               required={index === 0} // Only make first required to leverage native form validation loosely, or maybe don't need required attribute directly on all
               style={{
                 flex: "0 0 auto",
-                width: "48px",
-                height: "56px",
+                width: "42px",
+                height: "48px",
                 margin: 0,
                 padding: 0,
                 textAlign: "center",
-                fontSize: "24px",
+                fontSize: "20px",
                 fontWeight: "bold",
                 borderRadius: "8px",
                 border: "1px solid #d1d5db",
@@ -288,7 +288,7 @@ const OTPVerification = ({
           <span
             style={{
               fontWeight: "600",
-              color: "#e74c3c" /* هنا خلينا اللون أحمر دايماً */,
+              color: "#e74c3c",
             }}
           >
             {formatTime(timeLeft)}
@@ -307,10 +307,10 @@ const OTPVerification = ({
               style={{
                 pointerEvents: resendLoading ? "none" : "auto",
                 color:
-                  "var(--primary, #3b82f6)" /* هنا ضفنا اللون الأزرق لكلمة Resend */,
-                fontWeight: "600" /* خليناها بولد شوية عشان تبرز كزرار */,
+                  "var(--primary, #3b82f6)",
+                fontWeight: "600",
                 textDecoration:
-                  "none" /* عشان نشيل الخط اللي تحت اللينك لو موجود */,
+                  "none",
               }}
             >
               {resendLoading ? "Resending..." : "Resend"}
