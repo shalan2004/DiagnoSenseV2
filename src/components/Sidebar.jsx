@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { useSidebar } from "./SidebarContext";
 import { useTheme } from "./ThemeContext";
 import ConfirmModal from "./ConfirmModal";
@@ -70,13 +70,9 @@ export default function Sidebar({ activePage }) {
           <div className="nav-main">
             <div className="nav-section">
               <div className="nav-section-title">Main</div>
-              <a
-                href="#"
-                className={`nav-item ${activePage === "dashboard" ? "active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/dashboard");
-                }}
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => `nav-item ${activePage === "dashboard" || isActive ? "active" : ""}`}
               >
                 <span className="nav-icon">
                   <svg viewBox="0 0 24 24">
@@ -85,14 +81,10 @@ export default function Sidebar({ activePage }) {
                   </svg>
                 </span>
                 <span>Dashboard</span>
-              </a>
-              <a
-                href="#"
-                className={`nav-item ${activePage === "patients" ? "active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/patients");
-                }}
+              </NavLink>
+              <NavLink
+                to="/patients"
+                className={({ isActive }) => `nav-item ${activePage === "patients" || isActive ? "active" : ""}`}
               >
                 <span className="nav-icon">
                   <svg viewBox="0 0 24 24">
@@ -103,14 +95,10 @@ export default function Sidebar({ activePage }) {
                   </svg>
                 </span>
                 <span>Patients</span>
-              </a>
-              <a
-                href="#"
-                className={`nav-item ${activePage === "subscription" ? "active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/subscription");
-                }}
+              </NavLink>
+              <NavLink
+                to="/subscription"
+                className={({ isActive }) => `nav-item ${activePage === "subscription" || isActive ? "active" : ""}`}
               >
                 <span className="nav-icon">
                   <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -148,14 +136,10 @@ export default function Sidebar({ activePage }) {
 
                 </span>
                 <span>Subscription</span>
-              </a>
-              <a
-                href="#"
-                className={`nav-item ${activePage === "settings" ? "active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/settings");
-                }}
+              </NavLink>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) => `nav-item ${activePage === "settings" || isActive ? "active" : ""}`}
               >
                 <span className="nav-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -164,14 +148,10 @@ export default function Sidebar({ activePage }) {
                   </svg>
                 </span>
                 <span>Settings</span>
-              </a>
-              <a
-                href="#"
-                className={`nav-item ${activePage === "support" ? "active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/support");
-                }}
+              </NavLink>
+              <NavLink
+                to="/support"
+                className={({ isActive }) => `nav-item ${activePage === "support" || isActive ? "active" : ""}`}
               >
                 <span className="nav-icon">
                   <svg viewBox="0 0 24 24">
@@ -181,7 +161,7 @@ export default function Sidebar({ activePage }) {
                   </svg>
                 </span>
                 <span>Support</span>
-              </a>
+              </NavLink>
             </div>
           </div>
 

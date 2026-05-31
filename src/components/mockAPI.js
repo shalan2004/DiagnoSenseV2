@@ -23,7 +23,6 @@ const apiCall = async (endpoint, options = {}) => {
     try {
       const token =
         getCookie("user_token") ||
-        sessionStorage.getItem("user_token") ||
         localStorage.getItem("user_token");
 
       const isFormData = fetchOptions.body instanceof FormData;

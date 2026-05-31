@@ -73,9 +73,6 @@ const OAuthHashHandler = () => {
       setCookie("user_token", token, 7);
       setCookie("isAuthenticated", "true", 7);
       
-      // Explicitly set in sessionStorage and localStorage for fallback
-      sessionStorage.setItem("user_token", token);
-      sessionStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("user_token", token);
       localStorage.setItem("isAuthenticated", "true");
 
@@ -101,7 +98,6 @@ const OAuthHashHandler = () => {
               console.log("[OAuthHashHandler] profile loaded:", Boolean(doctorData?.id));
               
               setJsonCookie("user", doctorData, 7);
-              sessionStorage.setItem("user", JSON.stringify(doctorData));
               localStorage.setItem("user", JSON.stringify(doctorData));
 
               window.dispatchEvent(new CustomEvent("authChanged"));
@@ -118,7 +114,6 @@ const OAuthHashHandler = () => {
             }
           } else if (response.status === 401) {
             setCookie("user_token", "", -1);
-            sessionStorage.removeItem("user_token");
             localStorage.removeItem("user_token");
             navigate("/login", { replace: true });
           } else {
