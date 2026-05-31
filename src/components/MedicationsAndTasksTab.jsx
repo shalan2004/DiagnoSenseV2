@@ -150,6 +150,12 @@ export default function MedicationsAndTasksTab({
     );
   };
 
+  const filterPassedTime = (time) => {
+    const currentDate = new Date();
+    const selectedDate = new Date(time);
+    return currentDate.getTime() < selectedDate.getTime();
+  };
+
 const formatDateShort = (dateStr) => {
   if (!dateStr) return "";
   const m = moment(dateStr, [
@@ -332,7 +338,14 @@ const normalizeTask = (t) => {
 
       const res = await createVisitAPI(payload);
       // Reject explicit error responses
-      if (res?.success === false) return null;
+      if (res?.success === false) {
+        if (res?.errors?.next_visit_date) {
+          setStep(1);
+          setSubmitError(extractApiError(res));
+          return "VALIDATION_ERROR";
+        }
+        return null;
+      }
       // Handle common backend response shapes:
       const id =
         res?.data?.id ??
@@ -377,6 +390,10 @@ const normalizeTask = (t) => {
     setSubmitError(null);
 
     const vid = await ensureVisitId();
+    if (vid === "VALIDATION_ERROR") {
+      setIsSubmitting(false);
+      return;
+    }
     if (!vid) {
       setIsSubmitting(false);
       showToast("❌ Visit not created. Please set Next Visit first.");
@@ -439,6 +456,10 @@ const normalizeTask = (t) => {
     setSubmitError(null);
 
     const vid = await ensureVisitId();
+    if (vid === "VALIDATION_ERROR") {
+      setIsSubmitting(false);
+      return;
+    }
     if (!vid) {
       setIsSubmitting(false);
       showToast("❌ Visit not created. Please set Next Visit first.");
@@ -486,8 +507,6 @@ const normalizeTask = (t) => {
     if (res.data?.action === "save_and_create_another" || createAnother) {
       setTaskTitle("");
       setTaskDesc("");
-      setTaskNextVisitDate("");
-      setTaskNotes("");
       setErrors({});
       showToast("✅ Task saved! Add another.");
     } else {
@@ -1092,7 +1111,13 @@ const normalizeTask = (t) => {
                               selected={parseValidDate(visitDateValue)}
                               onChange={(date) => {
                                 if (date) {
-                                  const formattedDate = moment(date).format(
+                                  let finalDate = date;
+                                  const now = new Date();
+                                  if (finalDate.getTime() <= now.getTime()) {
+                                    finalDate = new Date(finalDate);
+                                    finalDate.setHours(now.getHours() + 1, 0, 0, 0);
+                                  }
+                                  const formattedDate = moment(finalDate).format(
                                     "YYYY-MM-DD HH:mm:ss",
                                   );
                                   onVisitDateChange(formattedDate);
@@ -1104,6 +1129,8 @@ const normalizeTask = (t) => {
                               showMonthDropdown
                               showYearDropdown
                               dropdownMode="select"
+                              minDate={new Date()}
+                              filterTime={filterPassedTime}
                               dateFormat={["dd/MM/yyyy h:mm aa", "dd-MM-yyyy h:mm aa", "dd.MM.yyyy h:mm aa", "dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
                               placeholderText="DD/MM/YYYY hh:mm aa"
                               wrapperClassName="datepicker-wrapper"
@@ -1426,7 +1453,13 @@ const normalizeTask = (t) => {
                               selected={parseValidDate(taskNextVisitDate)}
                               onChange={(date) => {
                                 if (date) {
-                                  const formattedDate = moment(date).format(
+                                  let finalDate = date;
+                                  const now = new Date();
+                                  if (finalDate.getTime() <= now.getTime()) {
+                                    finalDate = new Date(finalDate);
+                                    finalDate.setHours(now.getHours() + 1, 0, 0, 0);
+                                  }
+                                  const formattedDate = moment(finalDate).format(
                                     "YYYY-MM-DD HH:mm:ss",
                                   );
                                   setTaskNextVisitDate(formattedDate);
@@ -1443,6 +1476,8 @@ const normalizeTask = (t) => {
                               showMonthDropdown
                               showYearDropdown
                               dropdownMode="select"
+                              minDate={new Date()}
+                              filterTime={filterPassedTime}
                               dateFormat={["dd/MM/yyyy h:mm aa", "dd-MM-yyyy h:mm aa", "dd.MM.yyyy h:mm aa", "dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
                               placeholderText="DD/MM/YYYY hh:mm aa"
                               wrapperClassName="datepicker-wrapper"
