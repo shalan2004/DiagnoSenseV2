@@ -2354,9 +2354,11 @@ button.pp-note-delete-btn:hover {
 .chatbot-panel {
     position: fixed;
     bottom: 28px;
-    right: 28px;
+    right: 24px; 
     width: 360px;
+    max-width: calc(100vw - 100px); 
     height: 560px;
+    max-height: calc(100vh - 120px);
     background: white;
     border-radius: 14px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
@@ -2453,6 +2455,23 @@ button.pp-note-delete-btn:hover {
 
 .chat-input input:focus {
     border-color: #2A66FF;
+}
+
+/* ══ RESPONSIVE CHATBOT OVERRIDES ══ */
+@media (max-width: 768px) {
+    .chatbot-trigger {
+        right: 16px; 
+        bottom: 16px;
+        width: 48px; 
+        height: 48px;
+    }
+
+    .chatbot-panel {
+        right: 16px;
+        bottom: 76px; 
+        width: calc(100vw - 32px); 
+        height: 500px; 
+    }
 }
 
 /* Modals */
@@ -2662,15 +2681,15 @@ button.pp-note-delete-btn:hover {
         transform: translateX(-100%);
     }
 
-    .content-layer,
+    /* .content-layer,
     .content-layer.collapsed {
         margin-left: 0 !important;
-    }
+    } */
 
-    .top-navbar,
+    /* .top-navbar,
     .top-navbar.collapsed {
         left: 0 !important;
-    }
+    } */
 
     .overview-layout,
     .records-layout {

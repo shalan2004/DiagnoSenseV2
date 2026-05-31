@@ -1161,6 +1161,25 @@
   color: #e2e8f0;
 }
 
+/* ── Current/Selected Plan Card in Dark Mode ── */
+[data-theme="dark"] .subscription-page .plan-card.popular {
+  border-color: #ffffff; 
+  border-width: 2px;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.08); 
+}
+
+[data-theme="dark"] .subscription-page .current-banner {
+  border-color: #ffffff; 
+  border-width: 1px;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.08); 
+}
+
+/* ── Current Plan Badge styling to match the white border ── */
+[data-theme="dark"] .subscription-page .badge-current {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
 @keyframes fadeSlideIn {
   from {
     opacity: 0;

@@ -276,7 +276,7 @@ function Subscription() {
     message: "",
   });
 
-  const TOAST_TRUNCATE_LENGTH = 80;
+  const TOAST_TRUNCATE_LENGTH = 100;
 
   const showToast = (message, isSuccess) => {
     // Clear any existing timer so stacked calls reset the countdown

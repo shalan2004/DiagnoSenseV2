@@ -7,8 +7,7 @@ import {
 } from "./mockAPI";
 import { getCookie } from "./cookieUtils.js";
 
-
-const COUNTDOWN_SECONDS = 10 * 60;
+const COUNTDOWN_SECONDS = 10 * 60; 
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -32,7 +31,6 @@ const OTPVerification = ({
   const [successMessage, setSuccessMessage] = useState("");
   const [timeLeft, setTimeLeft] = useState(COUNTDOWN_SECONDS);
   const intervalRef = useRef(null);
-
 
   useEffect(() => {
     setTimeLeft(COUNTDOWN_SECONDS);
@@ -193,7 +191,17 @@ const OTPVerification = ({
       </div>
 
       <form onSubmit={handleVerify}>
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '24px', flexWrap: 'nowrap' }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "10px",
+            marginBottom: "24px",
+            flexWrap: "nowrap",
+          }}
+        >
           {otpValues.map((value, index) => (
             <input
               key={index}
@@ -209,29 +217,29 @@ const OTPVerification = ({
               aria-label={`OTP digit ${index + 1}`}
               required={index === 0} // Only make first required to leverage native form validation loosely, or maybe don't need required attribute directly on all
               style={{
-                flex: '0 0 auto',
-                width: '48px',
-                height: '56px',
+                flex: "0 0 auto",
+                width: "48px",
+                height: "56px",
                 margin: 0,
                 padding: 0,
-                textAlign: 'center',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                background: '#ffffff',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                outline: 'none',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
-                color: '#1f2937'
+                textAlign: "center",
+                fontSize: "24px",
+                fontWeight: "bold",
+                borderRadius: "8px",
+                border: "1px solid #d1d5db",
+                background: "#ffffff",
+                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                outline: "none",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+                color: "#1f2937",
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = 'var(--primary, #3b82f6)';
-                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.2)';
+                e.target.style.borderColor = "var(--primary, #3b82f6)";
+                e.target.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.2)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#d1d5db';
-                e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.05)";
               }}
             />
           ))}
@@ -267,7 +275,7 @@ const OTPVerification = ({
           {isLoading ? "Verifying..." : buttonLabel}
         </button>
       </form>
-    {timeLeft > 0 ? (
+      {timeLeft > 0 ? (
         <div
           style={{
             textAlign: "center",
@@ -280,10 +288,7 @@ const OTPVerification = ({
           <span
             style={{
               fontWeight: "600",
-              color:
-                timeLeft <= 60
-                  ? "#e74c3c"
-                  : "var(--primary, #3b82f6)",
+              color: "#e74c3c" /* هنا خلينا اللون أحمر دايماً */,
             }}
           >
             {formatTime(timeLeft)}
@@ -299,7 +304,14 @@ const OTPVerification = ({
             <a
               href="#"
               onClick={handleResendOTP}
-              style={{ pointerEvents: resendLoading ? "none" : "auto" }}
+              style={{
+                pointerEvents: resendLoading ? "none" : "auto",
+                color:
+                  "var(--primary, #3b82f6)" /* هنا ضفنا اللون الأزرق لكلمة Resend */,
+                fontWeight: "600" /* خليناها بولد شوية عشان تبرز كزرار */,
+                textDecoration:
+                  "none" /* عشان نشيل الخط اللي تحت اللينك لو موجود */,
+              }}
             >
               {resendLoading ? "Resending..." : "Resend"}
             </a>

@@ -192,7 +192,7 @@ const Settings = () => {
     } catch (err) {
       setProfileFeedback({
         type: "error",
-        message: "Network error. Please check your connection.",
+        message: "Something went wrong. Please check your network connection..",
       });
       setTimeout(() => setProfileFeedback({ type: "", message: "" }), 20000);
     } finally {
@@ -310,11 +310,11 @@ const Settings = () => {
               : null,
         });
       }
-   } catch (err) {
+    } catch (err) {
       console.error("[changePassword] unexpected error:", err);
       setPasswordFeedback({
         type: "error",
-        message: "Network error. Please check your connection.",
+        message: "Something went wrong. Please check your network connection..",
         messages: null,
       });
     } finally {
@@ -379,11 +379,11 @@ const Settings = () => {
               : null,
         });
       }
-   } catch (err) {
+    } catch (err) {
       console.error("[deleteAccount] unexpected error:", err);
       setDeleteFeedback({
         type: "error",
-        message: "Network error. Please check your connection.",
+        message: "Something went wrong. Please check your network connection..",
         messages: null,
       });
     } finally {
@@ -409,14 +409,14 @@ const Settings = () => {
 
       {/* ── Navbar ── */}
       <Navbar
-  isSidebarCollapsed={isSidebarCollapsed}
-  credits={credits}
-  isCreditsLoading={isCreditsLoading}
-  unreadCount={unreadCount}
-  getDoctorInitials={getDoctorInitials}
-  openNotifications={openNotifications}
-  setIsLogoutModalOpen={setIsLogoutModalOpen}
-/>
+        isSidebarCollapsed={isSidebarCollapsed}
+        credits={credits}
+        isCreditsLoading={isCreditsLoading}
+        unreadCount={unreadCount}
+        getDoctorInitials={getDoctorInitials}
+        openNotifications={openNotifications}
+        setIsLogoutModalOpen={setIsLogoutModalOpen}
+      />
 
       <LogoutConfirmation
         isOpen={isLogoutModalOpen}

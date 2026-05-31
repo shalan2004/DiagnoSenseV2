@@ -2,7 +2,14 @@
   width: 100%;
   min-height: 100vh;
 }
-
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body, html {
+  overflow-x: hidden;
+}
 /* -------------------------------------------------------------------------- */
 /* App shell layout fixes (sidebar + top navbar + search)                      */
 /* Keeps layout stable across pages even when multiple CSS files define        */
