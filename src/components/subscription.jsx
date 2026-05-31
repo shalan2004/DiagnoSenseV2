@@ -133,11 +133,12 @@ function Subscription() {
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.origin !== window.location.origin) return;
-      if (event.data?.type === "STRIPE_SUCCESS") {
+      if (event.data?.type === "STRIPE_SUCCESS" || event.data?.type === "PAYMENT_SUCCESS") {
         console.log(
-          "[Subscription] Stripe success message received from popup.",
+          "[Subscription] Payment success message received from popup.",
         );
         refreshSubscription();
+        refreshCredits();
         // fetchAndToastLatest: fetches real backend notification, shows it as
         // the toast popup, and refreshes the unread count in one go.
         fetchAndToastLatest();
@@ -147,7 +148,7 @@ function Subscription() {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [refreshSubscription, fetchAndToastLatest]);
+  }, [refreshSubscription, refreshCredits, fetchAndToastLatest]);
 
   // ── Real-time Refresh when notification arrives ────────────────────────────
   useEffect(() => {
@@ -499,8 +500,16 @@ const doCharge = async () => {
       // Clear cache immediately
       window.dispatchEvent(new CustomEvent("subscriptionChanged"));
 
-      // Poll to detect when the payment popup is closed by the user
+      // Poll to detect when the payment popup is closed by the user or redirects to success
       const popupTimer = setInterval(() => {
+        try {
+          if (popup && !popup.closed && popup.location && popup.location.href && popup.location.href.includes('status=success')) {
+            popup.close();
+          }
+        } catch (error) {
+          // Ignore cross-origin domain block errors while on Paymob
+        }
+
         if (!popup || popup.closed || popup.closed === undefined) {
           clearInterval(popupTimer);
           console.log(

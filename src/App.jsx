@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage.jsx";
+import PaymentSuccess from "./pages/PaymentSuccess.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import PatientList from "./components/PatientList.jsx";
 import AddPatient from "./components/AddPatient.jsx";
@@ -132,6 +133,13 @@ const OAuthHashHandler = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("status") === "success") {
+      window.close();
+    }
+  }, []);
+
   return (
     <ThemeProvider>
     <PageCacheProvider>
@@ -143,6 +151,7 @@ function App() {
         <Route path="/home" element={<DiagnoSense />} />
 
         <Route path="/login" element={<AuthPage />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
 
         <Route path="/loading" element={<ProcessingReports />} />
         <Route path="/evidence" element={<EvidencePanel />} />
