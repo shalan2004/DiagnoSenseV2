@@ -25,6 +25,28 @@ const AuthPage = () => {
   );
 
   useEffect(() => {
+      // Check if we are inside a popup frame (window.self !== window.top or window.name context exists)
+      const isPopup = window.name === 'stripe_checkout' || window.location.search.includes('status=success') || (window.opener && window.self !== window.top);
+      
+      if (isPopup) {
+          const timer = setTimeout(() => {
+              try {
+                  // This may throw a SecurityError if domains mismatch, which is our exact cue!
+                  if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage({ type: 'PAYMENT_SUCCESS' }, '*');
+                  }
+              } catch (crossOriginError) {
+                  console.log("Cross-origin popup detected safely via caught exception. Proceeding to force close.");
+              }
+              // Fail-safe closure: This always runs regardless of origin security blocks
+              window.close();
+          }, 500);
+
+          return () => clearTimeout(timer);
+      }
+  }, []);
+
+  useEffect(() => {
     if (resetToken) {
       setCurrentView("reset-password");
     }
