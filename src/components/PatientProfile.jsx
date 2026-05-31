@@ -78,6 +78,7 @@ const PatientProfile = () => {
     unreadCount,
     openNotifications,
     refreshNotifications: refreshNotificationsCtx,
+    triggerToast,
   } = useNotifications();
 
   const navigate = useNavigate();
@@ -746,6 +747,14 @@ const PatientProfile = () => {
       console.error("[Upgrade] error:", err);
       setIsUpgradeConfirmOpen(false);
       setIsUpgrading(false);
+      
+      if (err.response && err.response.status === 403) {
+        const backendMessage = err.response.data?.message || err.message;
+        triggerToast({
+          title: "Subscription Failed",
+          message: backendMessage,
+        });
+      }
     }
   };
 

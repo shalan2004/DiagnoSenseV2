@@ -49,6 +49,7 @@ const apiCall = async (endpoint, options = {}) => {
 
         return {
           success: false,
+          status: response.status,
           message: data.message || 'Something went wrong',
           errors: data.errors || null,
           data: data.data || null,
@@ -835,10 +836,16 @@ export const getSubscriptionPlansAPI = async () => {
  * Subscribes user to a specific plan.
  */
 export const subscribeToPlanAPI = async (planId) => {
-  return await apiCall(`/api/v1/subscriptions/${planId}/subscribe`, {
+  const result = await apiCall(`/api/v1/subscriptions/${planId}/subscribe`, {
     method: 'POST',
     body: JSON.stringify({ planId }),
   });
+  if (!result.success && result.status === 403) {
+    const error = new Error(result.message);
+    error.response = { status: 403, data: { message: result.message } };
+    throw error;
+  }
+  return result;
 };
 
 export const cancelSubscriptionAPI = async () => {
@@ -848,9 +855,15 @@ export const cancelSubscriptionAPI = async () => {
 };
 
 export const subscribeToPayPerUseAPI = async () => {
-  return await apiCall('/api/v1/subscriptions/pay-per-use', {
+  const result = await apiCall('/api/v1/subscriptions/pay-per-use', {
     method: 'POST',
   });
+  if (!result.success && result.status === 403) {
+    const error = new Error(result.message);
+    error.response = { status: 403, data: { message: result.message } };
+    throw error;
+  }
+  return result;
 };
 
 /**

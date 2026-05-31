@@ -371,20 +371,51 @@ function Subscription() {
 
     setIsPlanConfirmModalOpen(false);
 
-    if (plan === "Pay-per-use") {
-      setSubscribingPlanId("Pay-per-use");
+    try {
+      if (plan === "Pay-per-use") {
+        setSubscribingPlanId("Pay-per-use");
 
-      const result = await subscribeToPayPerUseAPI();
+        const result = await subscribeToPayPerUseAPI();
+
+        setSubscribingPlanId(null);
+        setPendingPlan(null);
+        if (!result.success) {
+          showToast(result.message, false);
+        }
+
+        if (result.success) {
+          setIsCancelledLocally(false);
+          setSelectedPlanId("Pay-per-use");
+          setTimeout(() => {
+            refreshSubscription();
+            refreshCredits();
+          }, 1500);
+          window.dispatchEvent(new CustomEvent("subscriptionChanged"));
+          if (activeTab === "billing") {
+            fetchTransactions(txCurrentPage, true);
+          }
+          fetchAndToastLatest();
+        }
+        return;
+      }
+
+      const planId = plan?.id || plan;
+
+      setSubscribingPlanId(planId);
+
+      const result = await subscribeToPlanAPI(planId);
 
       setSubscribingPlanId(null);
       setPendingPlan(null);
+
+
       if (!result.success) {
         showToast(result.message, false);
       }
 
       if (result.success) {
         setIsCancelledLocally(false);
-        setSelectedPlanId("Pay-per-use");
+        setSelectedPlanId(planId);
         setTimeout(() => {
           refreshSubscription();
           refreshCredits();
@@ -395,35 +426,17 @@ function Subscription() {
         }
         fetchAndToastLatest();
       }
-      return;
-    }
-
-    const planId = plan?.id || plan;
-
-    setSubscribingPlanId(planId);
-
-    const result = await subscribeToPlanAPI(planId);
-
-    setSubscribingPlanId(null);
-    setPendingPlan(null);
-
-
-    if (!result.success) {
-      showToast(result.message, false);
-    }
-
-    if (result.success) {
-      setIsCancelledLocally(false);
-      setSelectedPlanId(planId);
-      setTimeout(() => {
-        refreshSubscription();
-        refreshCredits();
-      }, 1500);
-      window.dispatchEvent(new CustomEvent("subscriptionChanged"));
-      if (activeTab === "billing") {
-        fetchTransactions(txCurrentPage, true);
+    } catch (error) {
+      console.error("[Upgrade] error:", error);
+      setSubscribingPlanId(null);
+      setPendingPlan(null);
+      
+      if (error.response && error.response.status === 403) {
+        const backendMessage = error.response.data?.message || error.message;
+        showToast(backendMessage, false);
+      } else {
+        showToast("An error occurred during subscription", false);
       }
-      fetchAndToastLatest();
     }
   };
 
