@@ -61,7 +61,7 @@ const apiCall = async (endpoint, options = {}) => {
       console.error('API Error:', error);
       return {
         success: false,
-        message: 'Network error. Please check your connection.',
+        message: 'Something went wrong. Please check your network connection..',
       };
     }
   };
@@ -201,7 +201,7 @@ export const resetPasswordAPI = async (reset_token, password, password_confirmat
     console.error('[resetPasswordAPI] network error:', error);
     return {
       success: false,
-      message: 'Network error. Please check your connection.',
+      message: 'Something went wrong. Please check your network connection..',
     };
   }
 };
@@ -309,7 +309,7 @@ export const analyzeReportAPI = async (formData) => {
     console.error('API Error:', error);
     return {
       success: false,
-      message: 'Network error. Please check your connection.',
+      message: 'Something went wrong. Please check your network connection..',
     };
   }
 };
@@ -370,7 +370,7 @@ export const getPatientAnalysisAPI = async (patientId) => {
     console.error('API Error:', error);
     return {
       success: false,
-      message: 'Network error. Please check your connection.',
+      message: 'Something went wrong. Please check your network connection..',
     };
   }
 };
@@ -475,7 +475,7 @@ export const addPatientAPI = async (formData) => {
     console.error('Error message:', error.message);
     return {
       success: false,
-      message: 'Network error. Please check your connection.',
+      message: 'Something went wrong. Please check your network connection..',
     };
   }
 };
@@ -749,7 +749,7 @@ export const getPatientForEditAPI = async (patientId) => {
     return { success: true, data: data.data ?? data };
   } catch (error) {
     console.error('[getPatientForEdit] API Error:', error);
-    return { success: false, message: 'Network error. Please check your connection.' };
+    return { success: false, message: 'Something went wrong. Please check your network connection..' };
   }
 };
 
@@ -791,7 +791,7 @@ export const updatePatientAPI = async (patientId, formData) => {
     return { success: true, message: data.message, data };
   } catch (error) {
     console.error('[updatePatient] API Error:', error);
-    return { success: false, message: 'Network error. Please check your connection.' };
+    return { success: false, message: 'Something went wrong. Please check your network connection..' };
   }
 };
 
