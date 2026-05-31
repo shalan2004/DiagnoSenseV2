@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { useSidebar } from "./SidebarContext";
 import { useTheme } from "./ThemeContext";
@@ -11,25 +11,225 @@ import {
   closeSidebarIcon 
 } from "../assets";
 import "../css/Sidebar.css";
+import { useSubscription } from "./SubscriptionContext";
+import {
+  cancelSubscriptionAPI,
+  getSubscriptionPlansAPI,
+  subscribeToPlanAPI,
+} from "./mockAPI";
 
 export default function Sidebar({ activePage }) {
   const navigate = useNavigate();
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
   const { isDark } = useTheme();
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const { refreshSubscription, refreshCredits, subscriptionData } = useSubscription();
+  const [isUpgrading, setIsUpgrading] = useState(false);
+
+  const [toast, setToast] = useState({
+    isOpen: false,
+    message: "",
+    isSuccess: false,
+  });
+  const toastTimerRef = useRef(null);
+
+  const [readMoreModal, setReadMoreModal] = useState({
+    isOpen: false,
+    message: "",
+  });
+
+  const showToast = (message, isSuccess) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ isOpen: true, message, isSuccess });
+    toastTimerRef.current = setTimeout(() => {
+      setToast({ isOpen: false, message: "", isSuccess: false });
+    }, 10000);
+  };
+
+  const closeToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ isOpen: false, message: "", isSuccess: false });
+  };
+  const TOAST_TRUNCATE_LENGTH = 100;
 
   const openDecisionSupport = () => setIsDecisionModalOpen(true);
   const closeDecisionSupport = () => setIsDecisionModalOpen(false);
 
-  const upgradeToProPlan = () => {
-    navigate("/subscription", { state: { tab: "plans" } });
-    closeDecisionSupport();
+  const upgradeToProPlan = async () => {
+    setIsUpgrading(true);
+    try {
+      const hasActivePlan =
+        (subscriptionData?.billing_mode === "subscription" ||
+          subscriptionData?.billing_mode === "pay_per_use" ||
+          subscriptionData?.billing_mode === "pay-per-use") &&
+        subscriptionData?.status &&
+        subscriptionData.status.toLowerCase() === "active";
+
+      if (hasActivePlan) {
+        await cancelSubscriptionAPI();
+      }
+
+      const plansResult = await getSubscriptionPlansAPI();
+      let proPlanId = "pro"; 
+      if (plansResult.success && plansResult.data) {
+        const proPlan = plansResult.data.find(
+          (p) => p.name && p.name.toLowerCase().includes("pro")
+        );
+        if (proPlan) {
+          proPlanId = proPlan.id;
+        }
+      }
+
+      const result = await subscribeToPlanAPI(proPlanId);
+      
+      if (!result.success) {
+        throw new Error(result.message || "Failed to subscribe to Pro plan.");
+      }
+
+      await refreshCredits();
+      await refreshSubscription();
+      
+      closeDecisionSupport();
+
+    } catch (error) {
+      console.error("[UpgradeToPro] error:", error);
+      const backendMessage = error.response?.data?.message || error.message || "An error occurred during upgrade.";
+      
+      closeDecisionSupport();
+      showToast(backendMessage, false);
+    } finally {
+      setIsUpgrading(false);
+    }
   };
 
   const logo = isDark ? diagnoSenseDarkLogo : diagnoSenseLightLogo;
 
   return (
     <>
+      {/* ── Toast Notification ── */}
+      {toast.isOpen && (
+        <div
+          onClick={() =>
+            setReadMoreModal({ isOpen: true, message: toast.message })
+          }
+          style={{
+            position: "fixed",
+            top: "80px",
+            right: "24px",
+            zIndex: 99999,
+            minWidth: "300px",
+            maxWidth: "350px",
+            background: "var(--card-bg, #ffffff)",
+            borderRadius: "12px",
+            border: "1px solid var(--border-color, #e5e7eb)",
+            padding: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "8px",
+            animation:
+              "0.3s ease-out 0s 1 normal forwards running slideInRight",
+            boxShadow:
+              "rgba(0, 0, 0, 0.1) 0px 10px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+            cursor: "pointer",
+          }}
+        >
+          {/* Icon */}
+          <div
+            style={{
+              flexShrink: 0,
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: toast.isSuccess
+                ? "rgba(34,197,94,0.1)"
+                : "rgba(239,68,68,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "15px",
+              marginTop: "1px",
+            }}
+          >
+            {toast.isSuccess ? "✓" : "✕"}
+          </div>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                color: "var(--text-primary, #111)",
+                marginBottom: "3px",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {toast.isSuccess ? "Success" : "Failed"}
+            </div>
+            <div
+              style={{
+                fontSize: "0.82rem",
+                color: "var(--text-secondary, #6b7280)",
+                lineHeight: 1.45,
+                wordBreak: "break-word",
+              }}
+            >
+              {toast.message.length > TOAST_TRUNCATE_LENGTH
+                ? toast.message.slice(0, TOAST_TRUNCATE_LENGTH).trimEnd() + "…"
+                : toast.message}
+            </div>
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              closeToast();
+            }}
+            style={{
+              flexShrink: 0,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary, #9ca3af)",
+              fontSize: "16px",
+              lineHeight: 1,
+              padding: "2px 4px",
+              borderRadius: "4px",
+              marginTop: "-1px",
+            }}
+            aria-label="Close notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* ── Read More Modal ── */}
+      <ConfirmModal
+        isOpen={readMoreModal.isOpen}
+        onClose={() => setReadMoreModal({ isOpen: false, message: "" })}
+        onConfirm={() => setReadMoreModal({ isOpen: false, message: "" })}
+        title="Message Details"
+        description={readMoreModal.message}
+        confirmText="Ok, got it"
+        variant="primary"
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        }
+      />
+      
       <aside className={`sidebar${isSidebarCollapsed ? " collapsed" : ""}`}>
         <div className="sidebar-header" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 20px' }}>
           <div className="sidebar-logo" style={{ width: '100%', height: '42px', margin: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '1 1 auto' }}>
@@ -197,6 +397,7 @@ export default function Sidebar({ activePage }) {
         isOpen={isDecisionModalOpen}
         onClose={closeDecisionSupport}
         onConfirm={upgradeToProPlan}
+        isLoading={isUpgrading}
         title="Decision Support"
         description={
           <>
