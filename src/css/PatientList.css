@@ -548,7 +548,7 @@ body {
 }
 
 .patients-title {
-    font-size: 32px;
+    font-size: 26px; 
     font-weight: 700;
     color: #0E1A34;
     margin: 0;
@@ -573,10 +573,10 @@ body {
 
 .page-search {
     width: 100%;
-    padding: 14px 16px 14px 44px;
+    padding: 12px 16px 12px 40px; 
     border: 1px solid var(--dm-border-color);
-    border-radius: 12px;
-    font-size: 15px;
+    border-radius: 10px; 
+    font-size: 14px; 
     color: var(--dm-text-primary);
     background: var(--dm-bg-input);
     transition: all 0.3s ease;
@@ -611,8 +611,9 @@ body {
     width: fit-content;
     background-color: #2A66FF;
     color: white;
-    padding: 10px 20px;
-    border-radius: 11px;
+    padding: 10px 16px; 
+    border-radius: 10px;
+    font-size: 14px; 
     display: flex;
     align-items: center;
     gap: 5px;
@@ -627,12 +628,12 @@ body {
 }
 
 .chip {
-    padding: 8px 16px;
+    padding: 6px 16px; /* كانت 8px */
     border-radius: 20px;
     background: var(--dm-bg-card);
     border: 1px solid var(--dm-border-color);
     color: var(--dm-text-secondary);
-    font-size: 14px;
+    font-size: 13px; /* كانت 14 */
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -663,8 +664,8 @@ body {
 
 .patient-card {
     background: var(--dm-bg-card);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 14px; 
+    padding: 20px; 
     box-shadow: var(--dm-shadow-card);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -683,10 +684,9 @@ body {
 .patient-header {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 20px;
-    /* Force identical header height across all cards (enough for 2 lines of text) */
-    min-height: 72px;
+    gap: 14px; 
+    margin-bottom: 16px; 
+    min-height: 64px; 
 }
 
 
@@ -701,14 +701,14 @@ body {
 }
 
 .patient-avatar {
-    width: 54px;
-    height: 54px;
+    width: 48px; 
+    height: 48px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #FFFFFF;
-    font-size: 24px;
+    font-size: 20px; 
     font-weight: 600;
     flex-shrink: 0;
 }
@@ -730,21 +730,17 @@ body {
 }
 
 .patient-info h3 {
-    font-size: 18px;
+    font-size: 16px; 
     font-weight: 600;
     color: var(--dm-text-primary);
     margin-bottom: 4px;
-
-    /* Lock to 2 lines maximum */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-
-    /* Ensure long names wrap and break correctly */
-    line-height: 24px;
+    line-height: 22px;
     word-break: break-word;
 }
 
@@ -758,7 +754,7 @@ body {
 }
 
 .patient-meta {
-    font-size: 14px;
+    font-size: 13px; 
     color: #8A94A6;
     margin-bottom: 0;
     white-space: nowrap;
@@ -775,7 +771,8 @@ body {
 }
 
 .status-badge {
-    flex-shrink: 0;
+    padding: 2px 8px; 
+    font-size: 11px; 
 }
 
 .status-badge.stable {
@@ -795,22 +792,21 @@ body {
 
 .ai-insight {
     background: var(--dm-bg-subtle);
-    padding: 12px;
-    border-radius: 12px;
+    padding: 10px 12px; 
+    border-radius: 10px; 
     border-left: 3px solid #2A66FF;
-    margin-bottom: 20px;
+    margin-bottom: 16px; 
     display: flex;
     flex-direction: column;
-    height: 100px;
-    /* Fixed height for 3 lines + "View more" */
+    height: 85px; 
 }
 
 .ai-insight p {
-    font-size: 13px;
+    font-size: 12.5px; 
     color: #3A4560;
-    line-height: 1.5;
+    line-height: 1.45;
     margin: 0;
-    max-height: 59px;
+    max-height: 55px; 
     overflow: hidden;
 }
 
@@ -839,9 +835,9 @@ body {
 .detail-row {
     display: flex;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: 6px 0; 
     border-bottom: 1px solid #F8FAFF;
-    font-size: 14px;
+    font-size: 13px; 
 }
 
 .detail-label {
@@ -870,9 +866,9 @@ body {
 
 .btn {
     flex: 1;
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: 8px 14px; 
+    border-radius: 8px; 
+    font-size: 13.5px; 
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -1214,6 +1210,19 @@ button.patient-card-delete-btn.edit-action-btn:hover {
 .status-circle:hover::after {
     opacity: 1;
 }
+
+
+.patients-page-header, 
+.patients-top-row, 
+.filter-chips, 
+.patient-grid, 
+.pagination {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
 
 
 
