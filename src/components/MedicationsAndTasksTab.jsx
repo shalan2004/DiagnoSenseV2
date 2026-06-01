@@ -94,6 +94,7 @@ export default function MedicationsAndTasksTab({
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
   const [taskNextVisitDate, setTaskNextVisitDate] = useState("");
+  const [isNextVisitLocked, setIsNextVisitLocked] = useState(false);
   const [taskNotes, setTaskNotes] = useState("");
   const [savedTasksInForm, setSavedTasksInForm] = useState([]);
 
@@ -322,6 +323,7 @@ export default function MedicationsAndTasksTab({
     setTaskDesc("");
     setTaskNextVisitDate("");
     setTaskNotes("");
+    setIsNextVisitLocked(false);
     setSavedMedsInForm([]);
     setSavedTasksInForm([]);
     setErrors({});
@@ -582,6 +584,10 @@ export default function MedicationsAndTasksTab({
     if (res.data?.action === "save_and_create_another" || createAnother) {
       setTaskTitle("");
       setTaskDesc("");
+      setTaskNotes("");
+      if (hasNextVisit === false && taskNextVisitDate) {
+        setIsNextVisitLocked(true);
+      }
       setErrors({});
       showToast("✅ Task saved! Add another.");
     } else {
@@ -1527,7 +1533,10 @@ export default function MedicationsAndTasksTab({
                           <label className="form-label">
                             Next Visit <span className="required">*</span>
                           </label>
-                          <div className="med-task-inline-date-wrapper">
+                          <div
+                            className={`med-task-inline-date-wrapper ${isNextVisitLocked ? "locked" : ""}`}
+                            style={isNextVisitLocked ? { opacity: 0.6, pointerEvents: "none", cursor: "not-allowed" } : {}}
+                          >
                             <svg className="med-task-inline-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <rect x="3" y="4" width="18" height="18" rx="2" />
                               <line x1="16" y1="2" x2="16" y2="6" />
@@ -1536,6 +1545,7 @@ export default function MedicationsAndTasksTab({
                             </svg>
                             <DatePicker
                               selected={parseValidDate(taskNextVisitDate)}
+                              disabled={isNextVisitLocked}
                               onChange={(date) => {
                                 if (date) {
                                   let finalDate = date;
