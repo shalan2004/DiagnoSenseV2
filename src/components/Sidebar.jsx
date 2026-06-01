@@ -60,7 +60,6 @@ export default function Sidebar({ activePage }) {
     try {
       const hasActivePlan =
         (subscriptionData?.billing_mode === "subscription" ||
-          subscriptionData?.billing_mode === "pay_per_use" ||
           subscriptionData?.billing_mode === "pay-per-use") &&
         subscriptionData?.status &&
         subscriptionData.status.toLowerCase() === "active";
@@ -101,6 +100,14 @@ export default function Sidebar({ activePage }) {
       setIsUpgrading(false);
     }
   };
+
+  const planName = subscriptionData?.plan_name || subscriptionData?.planName || "";
+  const billingMode = subscriptionData?.billing_mode || subscriptionData?.billingMode || "";
+  const isActive = subscriptionData?.status?.toLowerCase() === "active";
+
+  const hasProAccess = 
+    billingMode === "pay-per-use" || 
+    (isActive && billingMode === "subscription" && (planName.toLowerCase().includes("pro") || planName.toLowerCase().includes("premium")));
 
   const logo = isDark ? diagnoSenseDarkLogo : diagnoSenseLightLogo;
 
@@ -396,12 +403,12 @@ export default function Sidebar({ activePage }) {
       <ConfirmModal
         isOpen={isDecisionModalOpen}
         onClose={closeDecisionSupport}
-        onConfirm={upgradeToProPlan}
+        onConfirm={hasProAccess ? closeDecisionSupport : upgradeToProPlan}
         isLoading={isUpgrading}
         title="Decision Support"
         description={
-          <>
-            <p style={{ margin: "0 0 16px 0" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <p style={{ margin: 0 }}>
               Enhance your diagnostic accuracy with our advanced AI-powered
               Decision Support system. Get intelligent recommendations based on
               patient data, symptoms, and medical history.
@@ -429,10 +436,15 @@ export default function Sidebar({ activePage }) {
                 <span>Treatment recommendations and drug interaction warnings</span>
               </li>
             </ul>
-          </>
+            {hasProAccess && (
+              <p style={{ margin: "8px 0 0 0", textAlign: "center", color: isDark ? "#4ade80" : "#15803d", fontSize: "0.95em", fontWeight: 500 }}>
+                You already have full access to our advanced AI-powered decision support system.
+              </p>
+            )}
+          </div>
         }
-        confirmText="Upgrade to Pro"
-        cancelText="Maybe Later"
+        confirmText={hasProAccess ? "Got it" : "Upgrade to Pro"}
+        cancelText={hasProAccess ? null : "Maybe Later"}
         variant="primary"
         icon={
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
