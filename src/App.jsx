@@ -30,6 +30,11 @@ const ProtectedRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" />;
 };
 
+const GuestRoute = ({ children }) => {
+  const token = getCookie("user_token");
+  return token ? <Navigate to="/dashboard" replace /> : children;
+};
+
 const ProtectedLayout = () => {
   return (
     <ProtectedRoute>
@@ -150,7 +155,7 @@ function App() {
 
         <Route path="/home" element={<DiagnoSense />} />
 
-        <Route path="/login" element={<AuthPage />} />
+        <Route path="/login" element={<GuestRoute><AuthPage /></GuestRoute>} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
 
         <Route path="/loading" element={<ProcessingReports />} />
