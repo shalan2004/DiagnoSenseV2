@@ -278,7 +278,40 @@ const PatientProfile = () => {
   const mediumAlerts = effectiveKeyInfo.medium;
   const lowAlerts = effectiveKeyInfo.low;
 
-  const [chatMessages, setChatMessages] = useState([]);
+  const [chatMessages, setChatMessages] = useState(() => {
+    try {
+      if (patientId) {
+        const stored = sessionStorage.getItem(`DiagnoBot_chat_${patientId}`);
+        if (stored) return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Failed to load chat history", e);
+    }
+    return [];
+  });
+
+  // Load chat history if patientId changes
+  useEffect(() => {
+    if (patientId) {
+      try {
+        const stored = sessionStorage.getItem(`DiagnoBot_chat_${patientId}`);
+        if (stored) {
+          setChatMessages(JSON.parse(stored));
+        } else {
+          setChatMessages([]);
+        }
+      } catch (e) {
+        console.error("Failed to load chat history", e);
+      }
+    }
+  }, [patientId]);
+
+  // Save chat history on update
+  useEffect(() => {
+    if (patientId && chatMessages.length > 0) {
+      sessionStorage.setItem(`DiagnoBot_chat_${patientId}`, JSON.stringify(chatMessages));
+    }
+  }, [chatMessages, patientId]);
   const [analysisData, setAnalysisData] = useState(keyInfoData);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(true);
 
@@ -1445,12 +1478,15 @@ const PatientProfile = () => {
           overviewData?.patient_name ||
           overviewData?.full_name ||
           "this patient";
-        setChatMessages([
-          {
-            type: "ai",
-            text: `Hello Dr. ${doctorName}, how can I assist you with ${patientName}'s case today?`,
-          },
-        ]);
+        setChatMessages((prevMsgs) => {
+          if (prevMsgs.length > 0) return prevMsgs;
+          return [
+            {
+              type: "ai",
+              text: `Hello Dr. ${doctorName}, how can I assist you with ${patientName}'s case today?`,
+            },
+          ];
+        });
       }
       return !prev;
     });
@@ -6289,9 +6325,7 @@ const PatientProfile = () => {
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyPress={handleChatEnter}
-            disabled={
-              shouldShowLockedChatbot || isChatSending || isChatPreparing
-            }
+            disabled={shouldShowLockedChatbot}
             dir={getDirection(chatInput)}
             style={{ textAlign: getTextAlign(chatInput) }}
           />
