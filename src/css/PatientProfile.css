@@ -664,6 +664,9 @@ body {
         justify-content: flex-end;
         flex-shrink: 0;
     }
+    .pp-edit-file-btn{
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
@@ -2672,7 +2675,7 @@ button.pp-note-delete-btn:hover {
    PatientProfile-specific responsive adjustments only below. */
 @media (max-width: 1200px) {
     .patient-profile-page .pp-header {
-        padding: 14px 24px !important;
+        /* padding: 14px 24px !important; */
     }
 }
 
