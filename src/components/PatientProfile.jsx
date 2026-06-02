@@ -1015,11 +1015,44 @@ const PatientProfile = () => {
     }
   }, [chatMessages, isChatOpen]);
 
-  // ── Chatbot realtime cleanup on unmount ──
+  // ── Chatbot realtime subscription on mount & cleanup on unmount ──
   useEffect(() => {
+    const user = getJsonCookie("user");
+    const doctorId = user?.id || user?.user?.id;
+    if (doctorId) {
+      const channelName = `chatbot-answer.${doctorId}`;
+      chatChannelRef.current = channelName;
+      
+      console.log("=== BINDING ECHO.PRIVATE TO ===", channelName);
+      echo.private(channelName)
+        .listen('App\\Events\\Chatbot\\ChatbotAnswerReady', (payload) => {
+          console.log("=== CHATBOT SOCKET SUCCESS CRITICAL ===", payload);
+          const answer = payload?.answer || "";
+          setChatMessages((prev) => [
+            ...prev,
+            { type: "ai", text: answer },
+          ]);
+          setIsChatPreparing(false);
+          setIsChatSending(false);
+        })
+        .listen('App\\Events\\Chatbot\\ChatbotAnswerFailed', (payload) => {
+          console.log("=== CHATBOT SOCKET FAILURE CRITICAL ===", payload);
+          const errorMessage = payload?.error || "The system encountered a minor processing delay analyzing this file. Please try submitting your question again.";
+          setChatMessages((prev) => [
+            ...prev,
+            {
+              type: "ai",
+              text: errorMessage,
+            },
+          ]);
+          setIsChatPreparing(false);
+          setIsChatSending(false);
+        });
+    }
+
     return () => {
-      if (chatChannelRef.current) {
-        echo.leave(chatChannelRef.current);
+      if (doctorId) {
+        echo.leave(`chatbot-answer.${doctorId}`);
         chatChannelRef.current = null;
       }
     };
@@ -1390,38 +1423,6 @@ const PatientProfile = () => {
     if (e.key === "Enter") sendMessage();
   };
 
-  const subscribeToChatbotChannel = () => {
-    if (chatChannelRef.current) return;
-    const user = getJsonCookie("user");
-    const doctorId = user?.id || user?.user?.id;
-    if (!doctorId) return;
-
-    const channelName = `chatbot-answer.${doctorId}`;
-    chatChannelRef.current = channelName;
-
-    echo.private(channelName).listen(".ChatbotAnswerReady", (payload) => {
-      const answer = payload?.answer || payload?.data || payload?.message || "";
-      const isFailed =
-        !answer ||
-        answer.toLowerCase().includes("fail") ||
-        answer.toLowerCase().includes("error");
-
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "ai",
-          text: isFailed
-            ? "Sorry, I couldn't prepare the chatbot answer right now. Please try again."
-            : answer,
-        },
-      ]);
-      setIsChatPreparing(false);
-      setIsChatSending(false);
-      echo.leave(channelName);
-      chatChannelRef.current = null;
-    });
-  };
-
   const sendMessage = async () => {
     const text = chatInput.trim();
     if (!text || isChatSending || isChatPreparing) return;
@@ -1441,10 +1442,12 @@ const PatientProfile = () => {
             text: "Sorry, something went wrong. Please try again.",
           },
         ]);
+        setIsChatSending(false);
         return;
       }
 
-      if (res.data === "Preparing patient data...") {
+      // Check for 202 Accepted (Processing in background)
+      if (res.status === 202 || res.data === "Preparing patient data..." || res.message === "Preparing patient data...") {
         setChatMessages((prev) => [
           ...prev,
           {
@@ -1454,14 +1457,18 @@ const PatientProfile = () => {
           },
         ]);
         setIsChatPreparing(true);
-        subscribeToChatbotChannel();
+        // Keep input locked; Reverb WebSocket listeners will unlock it upon completion.
         return;
       }
 
+      // Direct 200 OK synchronous fallback (Bypass socket waiting cycle)
+      const answerText = res.answer || res.data || res.message || "Done.";
       setChatMessages((prev) => [
         ...prev,
-        { type: "ai", text: res.data || res.message || "Done." },
+        { type: "ai", text: answerText },
       ]);
+      setIsChatSending(false);
+      setIsChatPreparing(false);
     } catch {
       setChatMessages((prev) => [
         ...prev,
@@ -1470,8 +1477,7 @@ const PatientProfile = () => {
           text: "Sorry, something went wrong. Please try again.",
         },
       ]);
-    } finally {
-      if (!isChatPreparing) setIsChatSending(false);
+      setIsChatSending(false);
     }
   };
 
@@ -1519,6 +1525,52 @@ const PatientProfile = () => {
   // If canUseChatbotNow is true (PPU or Premium), never show the lock.
   const shouldShowLockedChatbot =
     !canUseChatbotNow && !hasExistingChatbotAccessOrData;
+
+  const hasInitializedInSession = useRef(false);
+
+  // --- Background Chatbot Pre-loading ---
+  useEffect(() => {
+    if (!patientId || !canUseChatbotNow || !overviewData) return;
+
+    if (hasInitializedInSession.current === patientId) return;
+    hasInitializedInSession.current = patientId;
+
+    const controller = new AbortController();
+
+    const triggerPreload = async () => {
+      try {
+        const token = localStorage.getItem("user_token");
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+        
+        const response = await fetch(`${baseUrl}/api/v1/patients/${patientId}/chatbot/ask`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 
+            question: "Initialize patient data",
+            patient_id: patientId,
+            patient_name: overviewData.name || overviewData.patientName || overviewData.full_name || "Unknown Patient"
+          }),
+          signal: controller.signal
+        });
+
+        if (response.status === 202) {
+          // Silently caught 202 accepted response. Let the connection complete naturally.
+        }
+      } catch (err) {
+        // Silently catch background errors and AbortError
+      }
+    };
+
+    triggerPreload();
+
+    return () => {
+      controller.abort();
+    };
+  }, [patientId, canUseChatbotNow, overviewData]);
 
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
