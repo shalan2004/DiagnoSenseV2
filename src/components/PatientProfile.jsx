@@ -1813,7 +1813,7 @@ const PatientProfile = () => {
         });
 
         header.style.position = "sticky";
-        header.style.top = "70px";
+        header.style.top = "60px";
         header.style.boxSizing = "border-box";
         header.style.transition = "none";
         header.style.overflow = "visible";

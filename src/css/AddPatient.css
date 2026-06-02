@@ -1436,8 +1436,8 @@
         }
 
         [data-theme="dark"] .uploaded-file-item {
-             background: var(--dm-bg-card, #1e2940);
-             border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7));
+             background: var(--dm-bg-card, #1e2940) !important;
+             border-color: var(--dm-border-color, rgba(51, 65, 85, 0.7)) !important;
         }
 
         [data-theme="dark"] .file-name {

@@ -9,6 +9,7 @@
 }
 body, html {
   overflow-x: hidden;
+  padding: 0;
 }
 /* -------------------------------------------------------------------------- */
 /* App shell layout fixes (sidebar + top navbar + search)                      */
@@ -72,7 +73,7 @@ body .decision-support-card .card-cta-btn {
   body .main-content,
   body .content-layer {
     margin-left: 72px;
-    padding: 24px;
+    /* padding: 24px; */
   }
 
 
@@ -108,7 +109,7 @@ body .decision-support-card .card-cta-btn {
   body .main-content,
   body .content-layer {
     margin-top: 60px;
-    padding: 20px;
+    /* padding: 20px; */
   }
 
   
@@ -127,7 +128,7 @@ body .decision-support-card .card-cta-btn {
   
   body .main-content,
   body .content-layer {
-    padding: 16px;
+    /* padding: 16px; */
   }
 }
 
