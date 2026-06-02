@@ -45,7 +45,7 @@ const result = await loginAPI(contact, password);
 
       localStorage.removeItem('doctor_name');
       localStorage.removeItem('support_form_draft');
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } else {
       setError(result.message || "Login failed. Please try again.");
     }

@@ -714,44 +714,87 @@ const AddPatient = () => {
         apiFormData.append("national_id", String(formData.national_id || "").trim());
       }
 
-      if (isSmoker !== null) {
-        apiFormData.append("is_smoker", isSmoker ? "1" : "0");
+      if (isEditMode && initialData) {
+        if (isSmoker !== null && isSmoker !== initialData.isSmoker) {
+          apiFormData.append("is_smoker", isSmoker ? "1" : "0");
+        }
+
+        if (hasSurgeries !== null && hasSurgeries !== initialData.hasSurgeries) {
+          apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
+        }
+
+        if (hasSurgeries && formData.surgeryText !== initialData.surgeryText) {
+          apiFormData.append("previous_surgeries_name", formData.surgeryText);
+        }
+
+        const sortedSelected = [...selectedChronicDiseases].sort();
+        const sortedInitial = [...(initialData.chronicDiseases || [])].sort();
+        const chronicDiseasesChanged = 
+          sortedSelected.length !== sortedInitial.length || 
+          sortedSelected.some((val, i) => val !== sortedInitial[i]);
+
+        if (chronicDiseasesChanged) {
+          if (selectedChronicDiseases.length > 0) {
+            selectedChronicDiseases.forEach((disease) => {
+              apiFormData.append("chronic_diseases[]", disease);
+            });
+          } else {
+            apiFormData.append("chronic_diseases", "");
+          }
+        }
+
+        if (formData.medications !== initialData.medications) {
+          apiFormData.append("current_medications", formData.medications);
+        }
+        if (formData.allergies !== initialData.allergies) {
+          apiFormData.append("allergies", formData.allergies);
+        }
+        if (formData.familyHistory !== initialData.familyHistory) {
+          apiFormData.append("family_history", formData.familyHistory);
+        }
+        if (formData.ChiefComplaint !== initialData.ChiefComplaint) {
+          apiFormData.append("current_complaints", formData.ChiefComplaint);
+        }
+      } else {
+        if (isSmoker !== null) {
+          apiFormData.append("is_smoker", isSmoker ? "1" : "0");
+        }
+
+        if (hasSurgeries !== null) {
+          apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
+        }
+
+        if (hasSurgeries && formData.surgeryText) {
+          apiFormData.append("previous_surgeries_name", formData.surgeryText);
+        }
+
+        if (selectedChronicDiseases.length > 0) {
+          selectedChronicDiseases.forEach((disease) => {
+            apiFormData.append("chronic_diseases[]", disease);
+          });
+        }
+
+        if (formData.medications) {
+          apiFormData.append("current_medications", formData.medications);
+        }
+        if (formData.allergies) {
+          apiFormData.append("allergies", formData.allergies);
+        }
+        if (formData.familyHistory) {
+          apiFormData.append("family_history", formData.familyHistory);
+        }
+        if (formData.ChiefComplaint) {
+          apiFormData.append("current_complaints", formData.ChiefComplaint);
+        }
       }
 
-      if (hasSurgeries !== null) {
-        apiFormData.append("previous_surgeries", hasSurgeries ? "1" : "0");
-      }
-
-      if (hasSurgeries && formData.surgeryText) {
-        apiFormData.append("previous_surgeries_name", formData.surgeryText);
-      }
-
-      if (selectedChronicDiseases.length > 0) {
-        selectedChronicDiseases.forEach((disease) => {
-          apiFormData.append("chronic_diseases[]", disease);
-        });
-      }
-
-      if (formData.medications) {
-        apiFormData.append("current_medications", formData.medications);
-      }
-      if (formData.allergies) {
-        apiFormData.append("allergies", formData.allergies);
-      }
-      if (formData.familyHistory) {
-        apiFormData.append("family_history", formData.familyHistory);
-      }
-      if (formData.ChiefComplaint) {
-        apiFormData.append("current_complaints", formData.ChiefComplaint);
-      }
-
-      fileManager.lab.filter(entry => entry.file).forEach((entry) =>
+      fileManager.lab.filter(entry => entry.file instanceof File).forEach((entry) =>
         apiFormData.append("lab[]", entry.file),
       );
-      fileManager.history.filter(entry => entry.file).forEach((entry) =>
+      fileManager.history.filter(entry => entry.file instanceof File).forEach((entry) =>
         apiFormData.append("medical_history[]", entry.file),
       );
-      fileManager.radiology.filter(entry => entry.file).forEach((entry) =>
+      fileManager.radiology.filter(entry => entry.file instanceof File).forEach((entry) =>
         apiFormData.append("radiology[]", entry.file),
       );
 

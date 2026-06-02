@@ -12,6 +12,21 @@ import {
 import ConfirmModal from "./ConfirmModal";
 import moment from "moment";
 
+const getSessionActionDate = (patientId) => {
+  try {
+    return sessionStorage.getItem(`latestActionDate_${patientId}`);
+  } catch {
+    return null;
+  }
+};
+
+const setSessionActionDate = (patientId, date) => {
+  try {
+    if (date) sessionStorage.setItem(`latestActionDate_${patientId}`, date);
+    else sessionStorage.removeItem(`latestActionDate_${patientId}`);
+  } catch {}
+};
+
 /**
  * Extracts the most useful error message from an API response.
  * Priority:
@@ -45,7 +60,7 @@ const TrashIcon = () => (
     <line x1="10" y1="11" x2="10" y2="17"></line>
     <line x1="14" y1="11" x2="14" y2="17"></line>
   </svg>
-); 
+);
 
 export default function MedicationsAndTasksTab({
   patientId,
@@ -68,7 +83,7 @@ export default function MedicationsAndTasksTab({
   const [visitDateValue, setVisitDateValue] = useState("");
   const [visitSaved, setVisitSaved] = useState(false);
 
-  const [taskType, setTaskType] = useState(null); 
+  const [taskType, setTaskType] = useState(null);
 
   const [medName, setMedName] = useState("");
   const [medDosage, setMedDosage] = useState("");
@@ -78,11 +93,12 @@ export default function MedicationsAndTasksTab({
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDesc, setTaskDesc] = useState("");
-  const [taskNextVisitDate, setTaskNextVisitDate] = useState(""); 
+  const [taskNextVisitDate, setTaskNextVisitDate] = useState("");
+  const [isNextVisitLocked, setIsNextVisitLocked] = useState(false);
   const [taskNotes, setTaskNotes] = useState("");
   const [savedTasksInForm, setSavedTasksInForm] = useState([]);
 
-  const [hasNextVisit, setHasNextVisit] = useState(null); 
+  const [hasNextVisit, setHasNextVisit] = useState(null);
 
   const [errors, setErrors] = useState({});
 
@@ -90,7 +106,7 @@ export default function MedicationsAndTasksTab({
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
-  const [deleteTargetType, setDeleteTargetType] = useState(null); 
+  const [deleteTargetType, setDeleteTargetType] = useState(null);
 
   const openDeleteConfirmModal = (id, type) => {
     setDeleteTargetId(id);
@@ -156,49 +172,53 @@ export default function MedicationsAndTasksTab({
     return currentDate.getTime() < selectedDate.getTime();
   };
 
-const formatDateShort = (dateStr) => {
-  if (!dateStr) return "";
-  const m = moment(dateStr, [
-    "YYYY-MM-DD HH:mm:ss",
-    "YYYY-MM-DDTHH:mm:ss",
-    "YYYY-MM-DD",
-    "MMMM D",              
-  ]);
-  if (!m.isValid()) return dateStr; 
-  return m.hours() === 0 && m.minutes() === 0
-    ? m.format("MMM D")
-    : m.format("MMM D, h:mm A");
-};
-
-const normalizeTask = (t) => {
-
-  const buildVisitDateTime = (visit) => {
-    if (!visit) return null;
-
-    const dateStr = visit.next_visit_date; 
-    const timeStr = visit.time;            
-
-    if (!dateStr) return null;
-
-    if (timeStr) {
-      const combined = `${dateStr} ${timeStr}`;
-      const m = moment(combined, "YYYY-MM-DD h:mm A");
-      if (m.isValid()) return m.format("MMM D, h:mm A"); 
-    }
-
-    const m = moment(dateStr, "YYYY-MM-DD");
-    return m.isValid() ? m.format("MMM D") : null;
+  const formatDateShort = (dateStr) => {
+    if (!dateStr) return "";
+    let m = moment(dateStr, [
+      "YYYY-MM-DD HH:mm:ss",
+      "YYYY-MM-DDTHH:mm:ss",
+      "YYYY-MM-DD",
+      "MMMM D",
+      "ddd, MMM D, YYYY h:mm A",
+      "ddd, MMMM D, YYYY h:mm A",
+      "ddd, MMM DD, YYYY h:mm A"
+    ]);
+    if (!m.isValid()) m = moment(dateStr);
+    if (!m.isValid()) return dateStr;
+    return m.hours() === 0 && m.minutes() === 0
+      ? m.format("MMM D")
+      : m.format("MMM D, h:mm A");
   };
 
-  return {
-    id: t.id,
-    title: t.title ?? "",
-    desc: t.description ?? t.desc ?? "",
-    notes: t.notes ?? "",
-    due: buildVisitDateTime(t.visit) ?? (t.Due_date ? t.Due_date : null),
-    dueStyle: "normal",
+  const normalizeTask = (t) => {
+
+    const buildVisitDateTime = (visit) => {
+      if (!visit) return null;
+
+      const dateStr = visit.next_visit_date;
+      const timeStr = visit.time;
+
+      if (!dateStr) return null;
+
+      if (timeStr) {
+        const combined = `${dateStr} ${timeStr}`;
+        const m = moment(combined, "YYYY-MM-DD h:mm A");
+        if (m.isValid()) return m.format("MMM D, h:mm A");
+      }
+
+      const m = moment(dateStr, "YYYY-MM-DD");
+      return m.isValid() ? m.format("MMM D") : null;
+    };
+
+    return {
+      id: t.id,
+      title: t.title ?? "",
+      desc: t.description ?? t.desc ?? "",
+      notes: t.notes ?? "",
+      due: buildVisitDateTime(t.visit) ?? (t.due_date ? formatDateShort(t.due_date) : t.Due_date ? formatDateShort(t.Due_date) : null),
+      dueStyle: "normal",
+    };
   };
-};
 
   const fetchVisitItems = useCallback(async () => {
     if (!patientId) return;
@@ -207,15 +227,59 @@ const normalizeTask = (t) => {
     const res = await getPatientVisitItems(patientId);
     setIsLoadingItems(false);
     if (res?.success) {
-      setTaskItems((res.data?.tasks ?? []).map(normalizeTask));
+      const rawTasks = res.data?.tasks ?? [];
+      setTaskItems(rawTasks.map(normalizeTask));
       setMeds(res.data?.medications ?? []);
-      // New response shape uses latest_next_visit_date
-      const label = res.data?.latest_next_visit_date || res.data?.next_visit_date || null;
-      setNextVisitDisplay(label);
-      if (label && onNextVisitSaved) {
-        onNextVisitSaved(label);
-      }
       
+      let maxDateRaw = res.data?.latest_next_visit_date || res.data?.next_visit_date || null;
+      let maxDateObj = null;
+      
+      if (maxDateRaw) {
+        const m = moment(maxDateRaw, [
+          "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+          "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
+        ]);
+        if (!m.isValid()) {
+            const fallback = moment(maxDateRaw);
+            if (fallback.isValid()) maxDateObj = fallback;
+        } else {
+            maxDateObj = m;
+        }
+      }
+
+      rawTasks.forEach(t => {
+        const tDue = t.due_date || t.Due_date;
+        if (tDue) {
+          const m = moment(tDue, [
+            "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+            "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
+          ]);
+          const parsed = m.isValid() ? m : moment(tDue);
+          if (parsed.isValid()) {
+            if (!maxDateObj || parsed.isAfter(maxDateObj)) {
+              maxDateObj = parsed;
+              maxDateRaw = tDue;
+            }
+          }
+        }
+      });
+      
+      let displayLabel = maxDateRaw;
+      if (maxDateObj) {
+         displayLabel = maxDateObj.format("ddd, MMMM D, YYYY, h:mm A");
+      }
+
+      // Reflects the absolute latest entry action performed by the user session
+      const sessionLatest = getSessionActionDate(patientId);
+      if (sessionLatest) {
+         displayLabel = sessionLatest;
+      }
+
+      setNextVisitDisplay(displayLabel);
+      if (displayLabel && onNextVisitSaved) {
+        onNextVisitSaved(displayLabel);
+      }
+
       let existingId = res.data?.id ?? res.data?.visit_id ?? res.data?.visit?.id ?? null;
       if (!existingId && res.data?.medications?.length > 0) {
         existingId = res.data.medications[0].visit_id || res.data.medications[0].visit?.id || null;
@@ -237,7 +301,7 @@ const normalizeTask = (t) => {
         setFetchError(msg || "Failed to load items.");
       }
     }
-  }, [patientId, onNextVisitSaved]); 
+  }, [patientId, onNextVisitSaved]);
 
   const hasFetchedRef = useRef(null);
 
@@ -259,6 +323,7 @@ const normalizeTask = (t) => {
     setTaskDesc("");
     setTaskNextVisitDate("");
     setTaskNotes("");
+    setIsNextVisitLocked(false);
     setSavedMedsInForm([]);
     setSavedTasksInForm([]);
     setErrors({});
@@ -306,7 +371,7 @@ const normalizeTask = (t) => {
   const ensureVisitId = async () => {
     // Read from ref — always current, even between React renders
     if (visitIdRef.current) return visitIdRef.current;
-    
+
     if (hasNextVisit === false && latestLoadedVisitIdRef.current) {
       visitIdRef.current = latestLoadedVisitIdRef.current;
       setVisitId(latestLoadedVisitIdRef.current);
@@ -356,7 +421,7 @@ const normalizeTask = (t) => {
         res?.visit_id ??
         res?.patient_visit_id ??
         null;
-        
+
       if (id) {
         visitIdRef.current = id;
         setVisitId(id);
@@ -489,10 +554,22 @@ const normalizeTask = (t) => {
     }
 
     const returnedTask = res.data?.task ?? res.data ?? null;
+    const incomingDue = returnedTask?.due_date || returnedTask?.Due_date || null;
+    if (incomingDue) {
+      let formattedDate = incomingDue;
+      const m = moment(incomingDue, [
+        "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+        "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
+      ]);
+      if (m.isValid()) formattedDate = m.format("ddd, MMMM D, YYYY, h:mm A");
+      setSessionActionDate(patientId, formattedDate);
+      setNextVisitDisplay(formattedDate);
+    }
+
     const savedTaskSummary = {
       id: returnedTask?.id ?? Date.now(),
       title: returnedTask?.title ?? taskTitle.trim(),
-      due: taskNextVisitDate 
+      due: taskNextVisitDate
         ? formatDateShort(taskNextVisitDate)
         : returnedTask?.due_date
           ? formatDateShort(returnedTask.due_date)
@@ -507,6 +584,10 @@ const normalizeTask = (t) => {
     if (res.data?.action === "save_and_create_another" || createAnother) {
       setTaskTitle("");
       setTaskDesc("");
+      setTaskNotes("");
+      if (hasNextVisit === false && taskNextVisitDate) {
+        setIsNextVisitLocked(true);
+      }
       setErrors({});
       showToast("✅ Task saved! Add another.");
     } else {
@@ -516,7 +597,7 @@ const normalizeTask = (t) => {
   };
 
   const removeMedication = async (medicationId) => {
-    if (deletingIds.has(medicationId)) return; 
+    if (deletingIds.has(medicationId)) return;
     setDeletingIds((prev) => new Set(prev).add(medicationId));
     const res = await deletePatientMedication(medicationId);
     setDeletingIds((prev) => {
@@ -526,14 +607,14 @@ const normalizeTask = (t) => {
     });
     if (res?.success) {
       setMeds((prev) => prev.filter((m) => m.id !== medicationId));
-      fetchVisitItems(); 
+      fetchVisitItems();
     } else {
       showToast(`❌ ${res?.message || "Failed to delete medication."}`);
     }
   };
 
   const removeTask = async (taskId) => {
-    if (deletingIds.has(taskId)) return; 
+    if (deletingIds.has(taskId)) return;
     setDeletingIds((prev) => new Set(prev).add(taskId));
     const res = await deletePatientTask(taskId);
     setDeletingIds((prev) => {
@@ -543,7 +624,7 @@ const normalizeTask = (t) => {
     });
     if (res?.success) {
       setTaskItems((prev) => prev.filter((t) => t.id !== taskId));
-      fetchVisitItems(); 
+      fetchVisitItems();
     } else {
       showToast(`❌ ${res?.message || "Failed to delete task."}`);
     }
@@ -1199,13 +1280,23 @@ const normalizeTask = (t) => {
                           setIsSubmitting(false);
                           if (res && res.success) {
                             const savedDate =
-                              res.data?.next_visit_date || visitDateValue;
-                            if (onNextVisitSaved) onNextVisitSaved(savedDate);
+                              res.data?.next_visit_date || res.data?.visit?.next_visit_date || visitDateValue;
+                            let formattedDate = savedDate;
+                            const m = moment(savedDate, [
+                                "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+                                "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
+                            ]);
+                            if (m.isValid()) formattedDate = m.format("ddd, MMMM D, YYYY, h:mm A");
+
+                            setSessionActionDate(patientId, formattedDate);
+                            setNextVisitDisplay(formattedDate);
+                            
+                            if (onNextVisitSaved) onNextVisitSaved(formattedDate);
                             window.dispatchEvent(
                               new CustomEvent("patientNextVisitUpdated", {
                                 detail: {
                                   patientId,
-                                  next_visit_date: savedDate,
+                                  next_visit_date: formattedDate,
                                 },
                               }),
                             );
@@ -1442,7 +1533,10 @@ const normalizeTask = (t) => {
                           <label className="form-label">
                             Next Visit <span className="required">*</span>
                           </label>
-                          <div className="med-task-inline-date-wrapper">
+                          <div
+                            className={`med-task-inline-date-wrapper ${isNextVisitLocked ? "locked" : ""}`}
+                            style={isNextVisitLocked ? { opacity: 0.6, pointerEvents: "none", cursor: "not-allowed" } : {}}
+                          >
                             <svg className="med-task-inline-cal-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <rect x="3" y="4" width="18" height="18" rx="2" />
                               <line x1="16" y1="2" x2="16" y2="6" />
@@ -1451,6 +1545,7 @@ const normalizeTask = (t) => {
                             </svg>
                             <DatePicker
                               selected={parseValidDate(taskNextVisitDate)}
+                              disabled={isNextVisitLocked}
                               onChange={(date) => {
                                 if (date) {
                                   let finalDate = date;
