@@ -650,15 +650,7 @@ export default function MedicationsAndTasksTab({
             <div className="med-task-error-banner">⚠️ {fetchError}</div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-              marginBottom: "24px",
-            }}
-          >
+          <div className="med-task-header-actions">
             <div
               className={`med-task-next-visit-bar ${nextVisitDisplay ? "has-visit" : ""}`}
             >
