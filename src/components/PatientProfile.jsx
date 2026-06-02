@@ -826,6 +826,8 @@ const PatientProfile = () => {
         (text) => {
           if (recordingNoteId === "diagnobot") {
             setChatInput((prev) => prev + text);
+          } else if (recordingNoteId === editingNoteId) {
+            setEditingNoteText((prev) => prev + text);
           } else if (recordingNoteId) {
             setNewNoteTexts((prev) => ({
               ...prev,
@@ -833,7 +835,7 @@ const PatientProfile = () => {
             }));
           }
         },
-        [recordingNoteId],
+        [recordingNoteId, editingNoteId],
       ),
     );
 
@@ -953,6 +955,11 @@ const PatientProfile = () => {
 
   const saveEditNote = async (id, newText) => {
     console.log("Saving note:", id, "with text:", newText);
+    
+    if (recordingNoteId === id) {
+      stopRecording();
+      setRecordingNoteId(null);
+    }
 
     // Detect if this is a backend-managed note (numeric id) vs a static/hardcoded note
     const isBackendNote =
@@ -1037,6 +1044,10 @@ const PatientProfile = () => {
   };
 
   const cancelEditNote = () => {
+    if (recordingNoteId === editingNoteId) {
+      stopRecording();
+      setRecordingNoteId(null);
+    }
     setEditingNoteId(null);
     setEditingNoteText("");
   };
@@ -2829,11 +2840,56 @@ const PatientProfile = () => {
                               />
                               <div className="pp-edit-footer-row">
                                 <div className="note-footer">
-                                  <div className="note-meta-stack">
+                                  <div className="note-meta-stack" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                     <span className="note-date">
                                       <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
+                                    <button
+                                      className={`pp-record-btn ${isRecording && recordingNoteId === noteId ? "recording" : ""}`}
+                                      onClick={() => {
+                                        if (isRecording && recordingNoteId !== noteId) {
+                                          stopRecording();
+                                        }
+                                        setRecordingNoteId(noteId);
+                                        toggleRecording();
+                                      }}
+                                      disabled={isConnecting && recordingNoteId !== noteId}
+                                    >
+                                      {isConnecting && recordingNoteId === noteId ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin-icon">
+                                          <line x1="12" y1="2" x2="12" y2="6"></line>
+                                          <line x1="12" y1="18" x2="12" y2="22"></line>
+                                          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                          <line x1="2" y1="12" x2="6" y2="12"></line>
+                                          <line x1="18" y1="12" x2="22" y2="12"></line>
+                                          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                      ) : isRecording && recordingNoteId === noteId ? (
+                                        <span style={{ width: "10px", height: "10px", backgroundColor: "#FF5C5C", borderRadius: "2px", display: "inline-block", animation: "pulseMicIcon 1.5s infinite", flexShrink: 0 }}></span>
+                                      ) : (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                          <line x1="12" y1="19" x2="12" y2="23"></line>
+                                          <line x1="8" y1="23" x2="16" y2="23"></line>
+                                        </svg>
+                                      )}
+                                      {isConnecting && recordingNoteId === noteId ? (
+                                        <span>Connecting...</span>
+                                      ) : isRecording && recordingNoteId === noteId ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "14px" }}>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.1s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.3s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.5s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.2s" }}></span>
+                                        </div>
+                                      ) : (
+                                        <span>Record</span>
+                                      )}
+                                    </button>
                                     {!isManualNote && (
                                       <button
                                         className="pp-evidence-icon-btn"
@@ -3317,11 +3373,56 @@ const PatientProfile = () => {
                               />
                               <div className="pp-edit-footer-row">
                                 <div className="note-footer">
-                                  <div className="note-meta-stack">
+                                  <div className="note-meta-stack" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                     <span className="note-date">
                                       <>{alertObj.is_ai_generated} · </>
                                       {alertObj.date}
                                     </span>
+                                    <button
+                                      className={`pp-record-btn ${isRecording && recordingNoteId === alertObj.id ? "recording" : ""}`}
+                                      onClick={() => {
+                                        if (isRecording && recordingNoteId !== alertObj.id) {
+                                          stopRecording();
+                                        }
+                                        setRecordingNoteId(alertObj.id);
+                                        toggleRecording();
+                                      }}
+                                      disabled={isConnecting && recordingNoteId !== alertObj.id}
+                                    >
+                                      {isConnecting && recordingNoteId === alertObj.id ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin-icon">
+                                          <line x1="12" y1="2" x2="12" y2="6"></line>
+                                          <line x1="12" y1="18" x2="12" y2="22"></line>
+                                          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                          <line x1="2" y1="12" x2="6" y2="12"></line>
+                                          <line x1="18" y1="12" x2="22" y2="12"></line>
+                                          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                      ) : isRecording && recordingNoteId === alertObj.id ? (
+                                        <span style={{ width: "10px", height: "10px", backgroundColor: "#FF5C5C", borderRadius: "2px", display: "inline-block", animation: "pulseMicIcon 1.5s infinite", flexShrink: 0 }}></span>
+                                      ) : (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                          <line x1="12" y1="19" x2="12" y2="23"></line>
+                                          <line x1="8" y1="23" x2="16" y2="23"></line>
+                                        </svg>
+                                      )}
+                                      {isConnecting && recordingNoteId === alertObj.id ? (
+                                        <span>Connecting...</span>
+                                      ) : isRecording && recordingNoteId === alertObj.id ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "14px" }}>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.1s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.3s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.5s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.2s" }}></span>
+                                        </div>
+                                      ) : (
+                                        <span>Record</span>
+                                      )}
+                                    </button>
                                     {!isManualNote && (
                                       <button
                                         className="pp-evidence-icon-btn"
@@ -3811,10 +3912,55 @@ const PatientProfile = () => {
                               />
                               <div className="pp-edit-footer-row">
                                 <div className="note-footer">
-                                  <div className="note-meta-stack">
+                                  <div className="note-meta-stack" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                     <span className="note-date">
                                       {alertObj.date}
                                     </span>
+                                    <button
+                                      className={`pp-record-btn ${isRecording && recordingNoteId === alertObj.id ? "recording" : ""}`}
+                                      onClick={() => {
+                                        if (isRecording && recordingNoteId !== alertObj.id) {
+                                          stopRecording();
+                                        }
+                                        setRecordingNoteId(alertObj.id);
+                                        toggleRecording();
+                                      }}
+                                      disabled={isConnecting && recordingNoteId !== alertObj.id}
+                                    >
+                                      {isConnecting && recordingNoteId === alertObj.id ? (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin-icon">
+                                          <line x1="12" y1="2" x2="12" y2="6"></line>
+                                          <line x1="12" y1="18" x2="12" y2="22"></line>
+                                          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                          <line x1="2" y1="12" x2="6" y2="12"></line>
+                                          <line x1="18" y1="12" x2="22" y2="12"></line>
+                                          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                        </svg>
+                                      ) : isRecording && recordingNoteId === alertObj.id ? (
+                                        <span style={{ width: "10px", height: "10px", backgroundColor: "#FF5C5C", borderRadius: "2px", display: "inline-block", animation: "pulseMicIcon 1.5s infinite", flexShrink: 0 }}></span>
+                                      ) : (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                          <line x1="12" y1="19" x2="12" y2="23"></line>
+                                          <line x1="8" y1="23" x2="16" y2="23"></line>
+                                        </svg>
+                                      )}
+                                      {isConnecting && recordingNoteId === alertObj.id ? (
+                                        <span>Connecting...</span>
+                                      ) : isRecording && recordingNoteId === alertObj.id ? (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "4px", height: "14px" }}>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.1s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.3s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.5s" }}></span>
+                                          <span className="voice-bar" style={{ width: "3px", backgroundColor: "#2A66FF", borderRadius: "2px", animation: "miniSoundWave 1.2s ease-in-out infinite alternate", animationDelay: "0.2s" }}></span>
+                                        </div>
+                                      ) : (
+                                        <span>Record</span>
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
                                 <div className="pp-note-save-row">
