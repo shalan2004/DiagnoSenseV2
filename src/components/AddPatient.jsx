@@ -369,9 +369,10 @@ const AddPatient = () => {
     };
 
     const newFieldErrors = {};
+    const errorsSource = result.errors || (result.data && typeof result.data === 'object' && !Array.isArray(result.data) ? result.data : null);
 
-    if (result.errors) {
-      Object.entries(result.errors).forEach(([backendKey, messages]) => {
+    if (errorsSource) {
+      Object.entries(errorsSource).forEach(([backendKey, messages]) => {
         // Handle indexed keys like "lab.0" -> "lab"
         const baseKey = backendKey.split(".")[0];
         const frontendKey = backendFieldMap[baseKey] || baseKey;
@@ -385,15 +386,17 @@ const AddPatient = () => {
 
     const message = result.message || "";
     if (
-      message.includes("users_contact_unique") ||
+      !newFieldErrors.contact &&
+      (message.includes("users_contact_unique") ||
       (message.includes("Duplicate entry") && message.includes("contact")) ||
       message.includes("contact has already been taken") ||
-      (result.errors && result.errors.contact && result.errors.contact[0].includes("already been taken"))
+      (result.errors && result.errors.contact && result.errors.contact[0].includes("already been taken")))
     ) {
       newFieldErrors.contact = "Contact already exists.";
     }
 
     if (
+      !newFieldErrors.national_id &&
       message.includes("national_id") &&
       message.includes("Duplicate entry")
     ) {

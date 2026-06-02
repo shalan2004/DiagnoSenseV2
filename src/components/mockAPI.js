@@ -784,7 +784,8 @@ export const updatePatientAPI = async (patientId, formData) => {
         success: false,
         status: response.status,
         message: data.message || 'Something went wrong',
-        errors: data.errors || null,
+        errors: data.errors || data.data || null,
+        data: data.data || null,
       };
     }
 
