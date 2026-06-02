@@ -1015,43 +1015,80 @@ const PatientProfile = () => {
     }
   }, [chatMessages, isChatOpen]);
 
+
+
   // ── Chatbot realtime subscription on mount & cleanup on unmount ──
   useEffect(() => {
     const user = getJsonCookie("user");
     const doctorId = user?.id || user?.user?.id;
+    
+    console.log("[DEBUG-ECHO] 1. useEffect mounted. doctorId:", doctorId);
+    
     if (doctorId) {
       const channelName = `chatbot-answer.${doctorId}`;
       chatChannelRef.current = channelName;
       
-      console.log("=== BINDING ECHO.PRIVATE TO ===", channelName);
+      console.log('SUBSCRIBING TO CHANNEL =>', channelName);
+      
+      // Force cleanup before re-binding to prevent duplicate messages
+      echo.leave(channelName);
+      
       echo.private(channelName)
-        .listen('App\\Events\\Chatbot\\ChatbotAnswerReady', (payload) => {
-          console.log("=== CHATBOT SOCKET SUCCESS CRITICAL ===", payload);
-          const answer = payload?.answer || "";
-          setChatMessages((prev) => [
-            ...prev,
-            { type: "ai", text: answer },
-          ]);
-          setIsChatPreparing(false);
-          setIsChatSending(false);
+        .listenToAll((eventName, data) => {
+          console.log("[DEBUG-WILDCARD] Event received on channel:", eventName);
+          console.log("[DEBUG-WILDCARD] Data:", data);
         })
-        .listen('App\\Events\\Chatbot\\ChatbotAnswerFailed', (payload) => {
-          console.log("=== CHATBOT SOCKET FAILURE CRITICAL ===", payload);
-          const errorMessage = payload?.error || "The system encountered a minor processing delay analyzing this file. Please try submitting your question again.";
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              type: "ai",
-              text: errorMessage,
-            },
-          ]);
-          setIsChatPreparing(false);
-          setIsChatSending(false);
+        .listen('.App\\Events\\Chatbot\\ChatbotAnswerReady', (payload) => {
+          console.log('CHATBOT SUCCESS', payload);
+          
+          const finalAnswer = payload?.answer || payload?.data?.answer;
+          
+          if (finalAnswer) {
+              // 1. Immediately wipe out the loading/preparing flags
+              setIsChatPreparing(false);
+              setIsChatSending(false);
+              
+              // 2. Append the message safely using the latest functional state slice
+              setChatMessages(prev => {
+                  // Remove any temporary "preparing" system messages if they exist by text or type filter
+                  const filteredMessages = prev.filter(msg => msg.text !== "I'm preparing this patient's data. Please wait a moment...");
+                  
+                  // Deduplicate check to completely prevent double rendering
+                  if (filteredMessages.some(msg => msg.text === finalAnswer)) {
+                      return filteredMessages;
+                  }
+                  
+                  return [...filteredMessages, { type: 'ai', text: finalAnswer }];
+              });
+          }
+        })
+        .listen('.App\\Events\\Chatbot\\ChatbotAnswerFailed', (payload) => {
+          console.log('CHATBOT FAILED', payload);
+          
+          const errorText = payload?.error || payload?.data?.error;
+          
+          if (errorText) {
+              // Immediately wipe out the loading/preparing flags
+              setIsChatPreparing(false);
+              setIsChatSending(false);
+              
+              setChatMessages(prev => {
+                  const filteredMessages = prev.filter(msg => msg.text !== "I'm preparing this patient's data. Please wait a moment...");
+                  
+                  if (filteredMessages.some(msg => msg.text === errorText)) {
+                      return filteredMessages;
+                  }
+                  
+                  return [...filteredMessages, { type: 'ai', text: errorText }];
+              });
+          }
         });
     }
 
     return () => {
+      console.log("[DEBUG-ECHO] 4. Component unmounting. Running cleanup for doctorId:", doctorId);
       if (doctorId) {
+        console.log(`[DEBUG-ECHO] 5. Calling echo.leave('chatbot-answer.${doctorId}');`);
         echo.leave(`chatbot-answer.${doctorId}`);
         chatChannelRef.current = null;
       }
@@ -1526,51 +1563,7 @@ const PatientProfile = () => {
   const shouldShowLockedChatbot =
     !canUseChatbotNow && !hasExistingChatbotAccessOrData;
 
-  const hasInitializedInSession = useRef(false);
 
-  // --- Background Chatbot Pre-loading ---
-  useEffect(() => {
-    if (!patientId || !canUseChatbotNow || !overviewData) return;
-
-    if (hasInitializedInSession.current === patientId) return;
-    hasInitializedInSession.current = patientId;
-
-    const controller = new AbortController();
-
-    const triggerPreload = async () => {
-      try {
-        const token = localStorage.getItem("user_token");
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-        
-        const response = await fetch(`${baseUrl}/api/v1/patients/${patientId}/chatbot/ask`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ 
-            question: "Initialize patient data",
-            patient_id: patientId,
-            patient_name: overviewData.name || overviewData.patientName || overviewData.full_name || "Unknown Patient"
-          }),
-          signal: controller.signal
-        });
-
-        if (response.status === 202) {
-          // Silently caught 202 accepted response. Let the connection complete naturally.
-        }
-      } catch (err) {
-        // Silently catch background errors and AbortError
-      }
-    };
-
-    triggerPreload();
-
-    return () => {
-      controller.abort();
-    };
-  }, [patientId, canUseChatbotNow, overviewData]);
 
   const openLogoutModal = () => setIsLogoutModalOpen(true);
   const closeLogoutModal = () => setIsLogoutModalOpen(false);
