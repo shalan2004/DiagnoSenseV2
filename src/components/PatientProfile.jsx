@@ -1057,8 +1057,8 @@ const PatientProfile = () => {
     
     console.log("[DEBUG-ECHO] 1. useEffect mounted. doctorId:", doctorId);
     
-    if (doctorId) {
-      const channelName = `chatbot-answer.${doctorId}`;
+    if (doctorId && patientId) {
+      const channelName = `chatbot-answer.${doctorId}.${patientId}`;
       chatChannelRef.current = channelName;
       
       console.log('SUBSCRIBING TO CHANNEL =>', channelName);
@@ -1119,14 +1119,14 @@ const PatientProfile = () => {
     }
 
     return () => {
-      console.log("[DEBUG-ECHO] 4. Component unmounting. Running cleanup for doctorId:", doctorId);
-      if (doctorId) {
-        console.log(`[DEBUG-ECHO] 5. Calling echo.leave('chatbot-answer.${doctorId}');`);
-        echo.leave(`chatbot-answer.${doctorId}`);
+      console.log("[DEBUG-ECHO] 4. Component unmounting. Running cleanup for doctorId:", doctorId, "patientId:", patientId);
+      if (doctorId && patientId) {
+        console.log(`[DEBUG-ECHO] 5. Calling echo.leave('chatbot-answer.${doctorId}.${patientId}');`);
+        echo.leave(`chatbot-answer.${doctorId}.${patientId}`);
         chatChannelRef.current = null;
       }
     };
-  }, []);
+  }, [patientId]);
 
   // ── Reset Decision Support when patient changes ──
   useEffect(() => {
