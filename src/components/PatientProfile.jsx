@@ -216,6 +216,23 @@ const PatientProfile = () => {
   const [isChatSending, setIsChatSending] = useState(false);
   const [isChatPreparing, setIsChatPreparing] = useState(false);
   const chatChannelRef = useRef(null); // guard against duplicate realtime listeners
+  const isChatSendingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isChatSending) {
+      isChatSendingRef.current = false;
+    }
+  }, [isChatSending]);
+
+  // Auto-scroll transcript container while recording
+  useEffect(() => {
+    const textarea = document.getElementById("chat-textarea");
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = chatInput ? `${Math.min(textarea.scrollHeight, 120)}px` : "auto";
+      textarea.scrollTop = textarea.scrollHeight;
+    }
+  }, [chatInput]);
 
   const [selectedStatus, setSelectedStatus] = useState(() => {
     try {
@@ -1493,16 +1510,29 @@ const PatientProfile = () => {
   };
 
   const handleChatEnter = (e) => {
-    if (e.key === "Enter") sendMessage();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   const sendMessage = async () => {
     const text = chatInput.trim();
-    if (!text || isChatSending || isChatPreparing) return;
+    if (!text || isChatSending || isChatPreparing || isChatSendingRef.current) return;
+
+    isChatSendingRef.current = true;
+
+    if (isRecording) {
+      stopRecording();
+      setRecordingNoteId(null);
+    }
 
     setChatMessages((prev) => [...prev, { type: "user", text }]);
     setChatInput("");
     setIsChatSending(true);
+
+    const textarea = document.getElementById("chat-textarea");
+    if (textarea) textarea.style.height = "auto";
 
     try {
       const res = await sendChatbotMessageAPI(patientId, text);
@@ -6319,23 +6349,32 @@ const PatientProfile = () => {
           )}
         </div>
         <div className="chat-input" style={{ alignItems: "center" }}>
-          <input
-            type="text"
+          <textarea
+            id="chat-textarea"
+            rows="1"
             placeholder="Ask me anything..."
             value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            onKeyPress={handleChatEnter}
+            onChange={(e) => {
+              setChatInput(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = e.target.value ? `${Math.min(e.target.scrollHeight, 120)}px` : "auto";
+            }}
+            onKeyDown={handleChatEnter}
             disabled={shouldShowLockedChatbot}
             dir={getDirection(chatInput)}
-            style={{ textAlign: getTextAlign(chatInput) }}
+            style={{ 
+              textAlign: getTextAlign(chatInput),
+              resize: "none",
+              overflowY: "auto",
+              fontFamily: "inherit",
+              lineHeight: "1.4"
+            }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <button
               className="chat-mic-btn"
               disabled={
                 shouldShowLockedChatbot ||
-                isChatSending ||
-                isChatPreparing ||
                 (isConnecting && recordingNoteId !== "diagnobot")
               }
               onClick={() => {

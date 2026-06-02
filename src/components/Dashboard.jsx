@@ -624,6 +624,8 @@ function QueueSection({ parentLoading }) {
         {queueList.map((p, i) => (
           <div
             key={p.id}
+            onClick={() => setModalPatient(p)}
+            style={{ cursor: "pointer" }}
             className={`dsn-mini-card${p.status_tag === "Attended"
               ? " dsn-attended"
               : p.status_tag === "Skipped"
@@ -654,7 +656,10 @@ function QueueSection({ parentLoading }) {
             </span>
             <button
               className="dsn-mini-view-btn"
-              onClick={() => setModalPatient(p)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setModalPatient(p);
+              }}
             >
               View
             </button>
