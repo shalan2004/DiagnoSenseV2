@@ -929,18 +929,8 @@ body {
     }
 }
 
-@media (max-width: 1024px) {
-    .sidebar {
-        transform: translateX(-100%);
-        transition: transform 0.3s ease;
-    }
-    .top-navbar {
-        left: 0;
-    }
-    .main-content {
-        margin-left: 0;
-    }
-}
+/* Sidebar layout above 768px is handled by JS toggle state (.collapsed class).
+   No forced sidebar-hide needed at 1024px. */
 
 @media (max-width: 768px) {
     .patient-grid {

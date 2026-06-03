@@ -2680,19 +2680,8 @@ button.pp-note-delete-btn:hover {
 }
 
 @media (max-width: 968px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    /* .content-layer,
-    .content-layer.collapsed {
-        margin-left: 0 !important;
-    } */
-
-    /* .top-navbar,
-    .top-navbar.collapsed {
-        left: 0 !important;
-    } */
+    /* Sidebar is managed by JS toggle (>= 768px) or hidden by Sidebar.css (< 768px).
+       No forced translateX needed here. */
 
     .overview-layout,
     .records-layout {
@@ -2714,6 +2703,7 @@ button.pp-note-delete-btn:hover {
         bottom: 16px;
     }
 }
+
 
 @keyframes spin {
     from {
