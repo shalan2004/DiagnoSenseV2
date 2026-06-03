@@ -130,6 +130,9 @@ body .decision-support-card .card-cta-btn {
   body .content-layer {
     /* padding: 16px; */
   }
+  body .credits-icon{
+     display: none;
+  }
 }
 
 .notification-badge {

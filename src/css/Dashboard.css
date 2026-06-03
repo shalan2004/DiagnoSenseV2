@@ -138,6 +138,7 @@ body {
 }
 
 .top-navbar {
+     width: auto;
      position: fixed;
      left: 260px;
      right: 0;
