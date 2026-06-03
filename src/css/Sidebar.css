@@ -1,4 +1,4 @@
-﻿.sidebar {
+.sidebar {
      position: fixed;
      left: 0;
      top: 0;
@@ -869,9 +869,12 @@
      }
 
      /* Expand main content */
-     .main-content {
+     .main-content,
+     .content-layer {
           margin-left: 0 !important;
           width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
      }
 
      .navbar-right {
