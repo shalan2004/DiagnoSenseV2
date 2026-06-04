@@ -6,8 +6,10 @@ import {
   createVisitMedication,
   createVisitTask,
   getPatientVisitItems,
+  getVisitEditAPI,
   deletePatientMedication,
   deletePatientTask,
+  updatePatientVisitDateAPI,
 } from "./mockAPI";
 import ConfirmModal from "./ConfirmModal";
 import moment from "moment";
@@ -107,6 +109,9 @@ export default function MedicationsAndTasksTab({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [deleteTargetType, setDeleteTargetType] = useState(null);
+
+  const [isEditingVisit, setIsEditingVisit] = useState(false);
+  const [selectedNewDate, setSelectedNewDate] = useState(null);
 
   const openDeleteConfirmModal = (id, type) => {
     setDeleteTargetId(id);
@@ -226,24 +231,25 @@ export default function MedicationsAndTasksTab({
     setFetchError(null);
     const res = await getPatientVisitItems(patientId);
     setIsLoadingItems(false);
+
     if (res?.success) {
       const rawTasks = res.data?.tasks ?? [];
       setTaskItems(rawTasks.map(normalizeTask));
       setMeds(res.data?.medications ?? []);
-      
+
       let maxDateRaw = res.data?.latest_next_visit_date || res.data?.next_visit_date || null;
       let maxDateObj = null;
-      
+
       if (maxDateRaw) {
         const m = moment(maxDateRaw, [
-          "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+          "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD",
           "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
         ]);
         if (!m.isValid()) {
-            const fallback = moment(maxDateRaw);
-            if (fallback.isValid()) maxDateObj = fallback;
+          const fallback = moment(maxDateRaw);
+          if (fallback.isValid()) maxDateObj = fallback;
         } else {
-            maxDateObj = m;
+          maxDateObj = m;
         }
       }
 
@@ -251,7 +257,7 @@ export default function MedicationsAndTasksTab({
         const tDue = t.due_date || t.Due_date;
         if (tDue) {
           const m = moment(tDue, [
-            "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD", 
+            "YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD",
             "ddd, MMM D, YYYY h:mm A", "ddd, MMMM D, YYYY, h:mm A"
           ]);
           const parsed = m.isValid() ? m : moment(tDue);
@@ -263,16 +269,16 @@ export default function MedicationsAndTasksTab({
           }
         }
       });
-      
+
       let displayLabel = maxDateRaw;
       if (maxDateObj) {
-         displayLabel = maxDateObj.format("ddd, MMMM D, YYYY, h:mm A");
+        displayLabel = maxDateObj.format("ddd, MMMM D, YYYY, h:mm A");
       }
 
       // Reflects the absolute latest entry action performed by the user session
       const sessionLatest = getSessionActionDate(patientId);
       if (sessionLatest) {
-         displayLabel = sessionLatest;
+        displayLabel = sessionLatest;
       }
 
       setNextVisitDisplay(displayLabel);
@@ -280,13 +286,8 @@ export default function MedicationsAndTasksTab({
         onNextVisitSaved(displayLabel);
       }
 
-      let existingId = res.data?.id ?? res.data?.visit_id ?? res.data?.visit?.id ?? null;
-      if (!existingId && res.data?.medications?.length > 0) {
-        existingId = res.data.medications[0].visit_id || res.data.medications[0].visit?.id || null;
-      }
-      if (!existingId && res.data?.tasks?.length > 0) {
-        existingId = res.data.tasks[0].visit_id || res.data.tasks[0].visit?.id || null;
-      }
+      // Extract next_visit_id from the updated backend contract
+      const existingId = res.data?.next_visit_id || null;
       if (existingId) {
         latestLoadedVisitIdRef.current = existingId;
       }
@@ -642,6 +643,55 @@ export default function MedicationsAndTasksTab({
 
   const lineBg = step === 2 ? "#00C187" : "#E6EAF2";
 
+  const handleSaveNextVisit = async () => {
+    if (!selectedNewDate) return;
+    try {
+      let finalDate = selectedNewDate;
+      const now = new Date();
+      if (finalDate.getTime() <= now.getTime()) {
+        finalDate = new Date(finalDate);
+        finalDate.setHours(now.getHours() + 1, 0, 0, 0);
+      }
+
+      // Format full datetime as YYYY-MM-DD HH:mm:ss — required by backend
+      const pad = (n) => n.toString().padStart(2, "0");
+      const backendDatetime =
+        `${finalDate.getFullYear()}-${pad(finalDate.getMonth() + 1)}-${pad(finalDate.getDate())} ` +
+        `${pad(finalDate.getHours())}:${pad(finalDate.getMinutes())}:00`;
+
+      const uiDisplayDate = moment(finalDate).format("YYYY-MM-DD HH:mm:ss");
+      onVisitDateChange(uiDisplayDate);
+
+      const vid = latestLoadedVisitIdRef.current || visitIdRef.current;
+
+      if (!vid) {
+        setIsEditingVisit(false);
+        setSelectedNewDate(null);
+        return;
+      }
+
+      // PATCH /api/v1/visits/{visitId}
+      const patchRes = await updatePatientVisitDateAPI(vid, { next_visit_date: backendDatetime });
+
+      if (patchRes?.success) {
+        const displayLabel = moment(finalDate).format("ddd, MMMM D, YYYY, h:mm A");
+        setNextVisitDisplay(displayLabel);
+        setSessionActionDate(patientId, displayLabel);
+        if (onNextVisitSaved) onNextVisitSaved(displayLabel);
+        setIsEditingVisit(false);
+        setSelectedNewDate(null);
+        fetchVisitItems();
+      } else {
+        setIsEditingVisit(false);
+        setSelectedNewDate(null);
+      }
+    } catch {
+      setIsEditingVisit(false);
+      setSelectedNewDate(null);
+    }
+  };
+
+
   return (
     <div className="medications-tasks-tab">
       {view === "dashboard" && (
@@ -661,26 +711,138 @@ export default function MedicationsAndTasksTab({
           >
             <div
               className={`med-task-next-visit-bar ${nextVisitDisplay ? "has-visit" : ""}`}
+              onClick={() => {
+                if (!isEditingVisit) {
+                  setIsEditingVisit(true);
+                  // Preload the current visit date from GET /api/v1/visits/{visitId}/edit
+                  const vid = latestLoadedVisitIdRef.current;
+                  if (vid) {
+                    getVisitEditAPI(vid).then((editRes) => {
+                      if (editRes?.success) {
+                        const rawDate =
+                          editRes.data?.next_visit_date ??
+                          editRes.data?.date ??
+                          null;
+                        const parsed = rawDate ? parseValidDate(rawDate) : null;
+                        if (parsed) setSelectedNewDate(parsed);
+                        else if (visitDateValue) setSelectedNewDate(parseValidDate(visitDateValue));
+                      } else if (visitDateValue) {
+                        setSelectedNewDate(parseValidDate(visitDateValue));
+                      }
+                    }).catch(() => {
+                      if (visitDateValue) setSelectedNewDate(parseValidDate(visitDateValue));
+                    });
+                  } else if (visitDateValue) {
+                    setSelectedNewDate(parseValidDate(visitDateValue));
+                  }
+                }
+              }}
+              style={{
+                cursor: isEditingVisit ? "default" : "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                flex: 1,
+                border: isEditingVisit ? "1.5px solid #2A66FF" : "",
+                background: isEditingVisit ? "#F8FAFF" : "",
+              }}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="med-task-next-visit-icon"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span className="med-task-next-visit-text">
-                {nextVisitDisplay
-                  ? `Next Visit: ${nextVisitDisplay}`
-                  : "No next visit scheduled"}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="med-task-next-visit-icon"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                {isEditingVisit ? (
+                  <DatePicker
+                    selected={selectedNewDate}
+                    onChange={(date) => {
+                      if (date) setSelectedNewDate(date);
+                    }}
+                    showTimeSelect
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                    minDate={new Date()}
+                    filterTime={filterPassedTime}
+                    dateFormat={["dd/MM/yyyy h:mm aa", "dd-MM-yyyy h:mm aa", "dd.MM.yyyy h:mm aa", "dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"]}
+                    placeholderText="DD/MM/YYYY hh:mm aa"
+                    wrapperClassName="datepicker-wrapper"
+                    className="step1-datepicker-input"
+                    portalId="root"
+                    autoFocus
+                  />
+                ) : (
+                  <span className="med-task-next-visit-text">
+                    {nextVisitDisplay
+                      ? `Next Visit: ${nextVisitDisplay}`
+                      : "No next visit scheduled"}
+                  </span>
+                )}
+                {isEditingVisit && (
+                  <button
+                    onMouseDown={(e) => {
+                      // Use onMouseDown to fire before react-datepicker's outside-click handler
+                      // which would otherwise unmount this button before onClick fires.
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (selectedNewDate) handleSaveNextVisit();
+                    }}
+                    disabled={!selectedNewDate}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "6px 14px",
+                      background: selectedNewDate ? "#2A66FF" : "#E6EAF2",
+                      color: selectedNewDate ? "white" : "#8A94A6",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: selectedNewDate ? "pointer" : "not-allowed",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                    title="Save Next Visit"
+                  >
+                    Save
+                  </button>
+                )}
+              </div>
+              
+              {!isEditingVisit && (
+                <button
+                  className="pp-note-edit-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditingVisit(true);
+                  }}
+                  aria-label="Edit Next Visit"
+                  title="Edit Next Visit"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <button onClick={openForm} className="med-task-add-btn">

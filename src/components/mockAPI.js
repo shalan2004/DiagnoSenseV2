@@ -589,6 +589,30 @@ export const createVisitAPI = async ({ patient_id, has_next_visit, next_visit_da
 };
 
 /**
+ * GET /api/v1/visits/{visitId}/edit
+ * Returns the editable data for an existing visit (includes next_visit_date).
+ *
+ * @param {number|string} visitId
+ */
+export const getVisitEditAPI = async (visitId) => {
+  return await apiCall(`/api/v1/visits/${visitId}/edit`, { method: 'GET' });
+};
+
+/**
+ * PATCH /api/v1/visits/{visitId}
+ * Updates the next visit date of an existing patient visit session.
+ *
+ * @param {number|string} visitId
+ * @param {object} payload - e.g. { next_visit_date: "2026-06-04 17:30:00" }
+ */
+export const updatePatientVisitDateAPI = async (visitId, payload) => {
+  return await apiCall(`/api/v1/visits/${visitId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+};
+
+/**
  * POST /api/v1/visits/{visitId}/medications
  * Adds a medication entry to a specific visit.
  *
