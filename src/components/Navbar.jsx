@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "./ThemeContext";
+import { useSidebar } from "./SidebarContext";
 
 const Navbar = ({
   isSidebarCollapsed,
@@ -14,6 +15,7 @@ const Navbar = ({
   const avatarMenuRef = useRef(null);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
+  const { toggleMobileMenu } = useSidebar();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -33,6 +35,18 @@ const Navbar = ({
 
   return (
     <nav className={`top-navbar${isSidebarCollapsed ? " collapsed" : ""}`}>
+      <button 
+        className="mobile-burger-btn" 
+        onClick={toggleMobileMenu}
+        aria-label="Open mobile menu"
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
       <div className="navbar-right">
         <Link
           to="/subscription"

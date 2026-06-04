@@ -59,41 +59,8 @@ body .decision-support-card .card-cta-btn {
   margin-top: 4px;
 }
 
-@media (max-width: 1024px) {
-  body .sidebar {
-    width: 72px;
-    transform: none;
-  }
-
-  body .top-navbar {
-    left: 72px;
-    padding: 0 20px;
-  }
-
-  body .main-content,
-  body .content-layer {
-    margin-left: 72px;
-    /* padding: 24px; */
-  }
-
-
-  body .nav-section-title {
-    display: none;
-  }
-
-  body .nav-item {
-    justify-content: center;
-    padding: 11px 12px;
-  }
-
-  body .nav-item span:not(.nav-icon) {
-    display: none;
-  }
-
-  body .nav-bottom {
-    display: none;
-  }
-}
+/* Sidebar toggle for viewports >= 768px is handled entirely by JS (.collapsed class).
+   No forced-collapse media query needed here. */
 
 @media (max-width: 768px) {
   body .top-navbar {
@@ -129,6 +96,9 @@ body .decision-support-card .card-cta-btn {
   body .main-content,
   body .content-layer {
     /* padding: 16px; */
+  }
+  body .credits-icon{
+     display: none;
   }
 }
 

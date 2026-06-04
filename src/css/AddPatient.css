@@ -1003,23 +1003,23 @@
              }
 
              .wizard-header {
-                  padding: 32px 24px 24px;
+                  padding: 20px 16px 16px;
              }
 
              .wizard-body {
-                  padding: 32px 24px;
+                  padding: 20px 16px;
              }
 
              .step-indicator {
                   overflow-x: auto;
                   justify-content: flex-start;
-                  padding: 0 20px;
+                  padding: 0 10px;
                   scrollbar-width: none;
              }
 
              .step-connector {
-                  width: 80px;
-                  margin: 0 12px;
+                  width: 60px;
+                  margin: 0 10px;
              }
 
              .wizard-actions {
@@ -1031,8 +1031,91 @@
                   padding: 8px 16px;
                   font-size: 13px;
              }
-        }
 
+             /* 1. Target the upload card specifically */
+             .upload-card {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  min-width: 0 !important;
+                  box-sizing: border-box !important;
+                  flex-shrink: 1 !important;
+                  padding: 16px 12px !important;
+             }
+
+             .upload-cards-grid {
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
+             }
+
+             .dropzone {
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
+                  padding: 20px 10px !important;
+             }
+
+             .uploaded-file-item {
+                  max-width: 100% !important;
+                  box-sizing: border-box !important;
+                  min-width: 0 !important;
+             }
+
+             .file-name {
+                  min-width: 0 !important;
+                  white-space: nowrap !important;
+                  overflow: hidden !important;
+                  text-overflow: ellipsis !important;
+                  font-size: 13px !important;
+             }
+
+             .upload-card-subtitle {
+                  font-size: 13px !important;
+                  word-break: break-word !important;
+                  white-space: normal !important;
+             }
+
+             /* 2. Scale down the overall Form on Mobile */
+             .wizard-card {
+                  width: 100% !important;
+                  max-width: 100vw !important;
+                  box-sizing: border-box !important;
+                  margin: 0 !important;
+                  border-radius: 0;
+                  overflow-x: hidden;
+             }
+
+             /* Reduce font sizes */
+             .page-header h1 { font-size: 24px !important; }
+             .page-header p { font-size: 14px !important; }
+             .step-title { font-size: 20px !important; }
+             .step-subtitle { font-size: 14px !important; }
+             .form-label, .toggle-label, .upload-card-title h4 { font-size: 13px !important; }
+
+             /* Reduce height and padding of inputs/buttons */
+             .form-input,
+             .form-select,
+             .custom-select-trigger,
+             .add-patient-step1 .form-input,
+             .add-patient-step1 .custom-select-trigger {
+                  height: 40px !important;
+                  min-height: 40px !important;
+                  max-height: 40px !important;
+                  padding: 8px 12px !important;
+                  font-size: 14px !important;
+             }
+
+             .form-textarea {
+                  min-height: 80px !important;
+                  padding: 10px 12px !important;
+                  font-size: 14px !important;
+             }
+             
+             .btn, .next, .back {
+                  padding: 10px 16px !important;
+                  font-size: 14px !important;
+                  height: 40px !important;
+             }
+        }
 
         .provided-hint {
              font-size: 15px;
@@ -1498,3 +1581,119 @@
              width: 100%;
              display: block;
         }
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE OVERRIDES - ADD PATIENT FORM
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+     /* 1. Target the upload card specifically */
+     .upload-card {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          flex-shrink: 1 !important;
+          padding: 12px !important;
+          overflow: hidden !important;
+     }
+
+     .upload-cards-grid {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 16px !important;
+     }
+
+     .existing-files-section,
+     .new-files-section,
+     .uploaded-files-list {
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+     }
+
+     .dropzone {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          padding: 16px 10px !important;
+     }
+
+     .uploaded-file-item {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          min-width: 0 !important;
+          flex-shrink: 1 !important;
+          gap: 8px !important;
+          padding: 10px 8px !important;
+     }
+
+     .file-name {
+          min-width: 0 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          flex-shrink: 1 !important;
+          font-size: 13px !important;
+     }
+
+     .upload-card-title {
+          flex-wrap: wrap !important;
+          min-width: 0 !important;
+     }
+
+     /* 2. Scale down the overall Form on Mobile */
+     .wizard-card {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+     }
+
+     .wizard-body {
+          padding: 16px !important;
+     }
+
+     .wizard-header {
+          padding: 16px !important;
+     }
+
+     .page-header h1 { font-size: 22px !important; }
+     .page-header p { font-size: 13px !important; }
+     .step-title { font-size: 18px !important; }
+     .step-subtitle { font-size: 13px !important; }
+     
+     .upload-card-title h4 { font-size: 14px !important; }
+     .upload-card-subtitle { font-size: 12px !important; line-height: 1.4 !important; }
+     .form-label, .toggle-label { font-size: 13px !important; }
+
+     .form-input,
+     .form-select,
+     .custom-select-trigger,
+     .add-patient-step1 .form-input,
+     .add-patient-step1 .custom-select-trigger {
+          height: 38px !important;
+          min-height: 38px !important;
+          max-height: 38px !important;
+          padding: 6px 10px !important;
+          font-size: 14px !important;
+     }
+
+     .form-textarea {
+          min-height: 70px !important;
+          padding: 8px 10px !important;
+          font-size: 14px !important;
+     }
+
+     .btn, .next, .back {
+          padding: 8px 14px !important;
+          font-size: 13px !important;
+          height: 38px !important;
+     }
+}

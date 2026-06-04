@@ -138,6 +138,7 @@ body {
 }
 
 .top-navbar {
+     width: auto;
      position: fixed;
      left: 260px;
      right: 0;
@@ -1187,25 +1188,7 @@ body {
 }
 
 @media (max-width: 768px) {
-     .sidebar {
-          width: 72px;
-     }
-
-     .logo-text {
-          display: none;
-     }
-
-     .nav-item span:not(.nav-icon) {
-          display: none;
-     }
-
-     .main-content {
-          margin-left: 72px;
-     }
-
-     .top-navbar {
-          left: 72px;
-     }
+     /* Sidebar is hidden below 768px by Sidebar.css — no sidebar overrides needed here */
 
      .search-container {
           display: none;
@@ -1219,6 +1202,7 @@ body {
           grid-template-columns: 1fr;
      }
 }
+
 
 /* ═══════════════════════════════════════════
        Sidebar collapse — JS-driven toggle state
@@ -2445,6 +2429,9 @@ body {
 
   #dsn-main .dsn-top-wrapper {
     padding: 16px 14px 12px;  
+  }
+  #dsn-main .dsn-active-avatar {
+    display: none;
   }
 }
 

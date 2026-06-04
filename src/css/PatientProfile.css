@@ -632,6 +632,25 @@ body {
 }
 
 @media (max-width: 768px) {
+    /* ── Complete mobile layout reset for Patient Profile ── */
+    .content-layer,
+    .content-layer.collapsed {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .patient-profile-page {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
     .patient-profile-page .pp-header {
         /* No negative margin hacks — sticky positioning handles placement */
         padding: 12px 20px !important;
@@ -666,6 +685,42 @@ body {
     }
     .pp-edit-file-btn{
         width: 100%;
+    }
+
+    /* ── Fluid text wrapping for Smart Summary & AI Insight ── */
+    .smart-summary,
+    .ai-insight,
+    .overview-layout,
+    .records-layout {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .smart-summary,
+    .ai-insight {
+        display: block !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .smart-summary p,
+    .smart-summary span,
+    .smart-summary li,
+    .ai-insight p,
+    .ai-insight span,
+    .ai-insight li {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .overview-layout {
+        flex-direction: column !important;
+        padding: 0 !important;
     }
 }
 
@@ -2680,19 +2735,8 @@ button.pp-note-delete-btn:hover {
 }
 
 @media (max-width: 968px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-
-    /* .content-layer,
-    .content-layer.collapsed {
-        margin-left: 0 !important;
-    } */
-
-    /* .top-navbar,
-    .top-navbar.collapsed {
-        left: 0 !important;
-    } */
+    /* Sidebar is managed by JS toggle (>= 768px) or hidden by Sidebar.css (< 768px).
+       No forced translateX needed here. */
 
     .overview-layout,
     .records-layout {
@@ -2714,6 +2758,7 @@ button.pp-note-delete-btn:hover {
         bottom: 16px;
     }
 }
+
 
 @keyframes spin {
     from {
@@ -2800,11 +2845,52 @@ button.pp-note-delete-btn:hover {
 /* ═══════════════════════════════════════════════════════════
    Medications & Tasks
    ═══════════════════════════════════════════════════════════ */
+.medications-tasks-tab {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.med-task-header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+@media (max-width: 767px) {
+    .med-task-header-actions .med-task-next-visit-bar,
+    .med-task-header-actions .med-task-add-btn {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .med-task-header-actions .med-task-add-btn {
+        justify-content: center;
+    }
+}
+
+@media (min-width: 768px) {
+    .med-task-header-actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
 .med-task-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 20px;
     transition: opacity 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .med-task-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 .med-task-grid.loading-overlay {
@@ -2885,6 +2971,26 @@ button.pp-note-delete-btn:hover {
 .med-task-item-content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.med-task-item-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.med-task-item-due {
+    flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+    .med-task-item-content {
+        flex-direction: column;
+        gap: 6px;
+    }
 }
 
 .med-task-item-title {
@@ -3038,11 +3144,66 @@ button.pp-note-delete-btn:hover {
     color: #2A66FF;
 }
 
+.med-task-choice-container {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.med-task-choice-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 1.5px solid #E6EAF2;
+    background: white;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0E1A34;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    max-width: 160px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.med-task-choice-btn:hover {
+    border-color: #2A66FF;
+    color: #2A66FF;
+}
+
 .med-task-form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 16px;
     margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .med-task-form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.med-task-form-card {
+    position: relative;
+    padding: 16px 48px 40px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+    .med-task-form-card {
+        padding: 16px 16px 40px;
+    }
+}
+
+.medications-tasks-tab .form-input,
+.medications-tasks-tab textarea.form-input {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .med-task-added-list-container {
@@ -3154,6 +3315,24 @@ button.pp-note-delete-btn:hover {
     gap: 12px;
 }
 
+@media (max-width: 767px) {
+    .med-task-form-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .med-task-footer-button-group {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    .med-task-form-footer button,
+    .med-task-footer-button-group button {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
 .med-task-btn-secondary,
 .med-task-btn-back {
     padding: 10px 20px;
@@ -3222,6 +3401,17 @@ button.pp-note-delete-btn:hover {
     margin-top: 24px;
 }
 
+@media (max-width: 767px) {
+    .med-task-form-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .med-task-form-actions button {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
 .med-task-saved-date-mini-card {
     margin-top: 16px;
 }
@@ -3248,6 +3438,7 @@ button.pp-note-delete-btn:hover {
 
 .step1-datepicker-input {
     width: 100%;
+    box-sizing: border-box;
     padding: 10px 14px;
     border: 1px solid #E6EAF2;
     border-radius: 8px;
@@ -3281,6 +3472,7 @@ button.pp-note-delete-btn:hover {
 .med-task-inline-date-input {
     padding-left: 34px !important;
     width: 100%;
+    box-sizing: border-box;
     cursor: pointer;
 }
 

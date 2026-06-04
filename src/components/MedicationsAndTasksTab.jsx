@@ -700,15 +700,7 @@ export default function MedicationsAndTasksTab({
             <div className="med-task-error-banner">⚠️ {fetchError}</div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "16px",
-              marginBottom: "24px",
-            }}
-          >
+          <div className="med-task-header-actions">
             <div
               className={`med-task-next-visit-bar ${nextVisitDisplay ? "has-visit" : ""}`}
               onClick={() => {
@@ -989,21 +981,24 @@ export default function MedicationsAndTasksTab({
                     <div key={t.id} className="med-task-item-card">
                       <div className="med-task-item-main">
                         <div className="med-task-item-content">
-                          <div className="med-task-item-title">{t.title}</div>
-                          {t.desc && (
-                            <div className="med-task-item-desc">{t.desc}</div>
-                          )}
+                          <div className="med-task-item-text">
+                            <div className="med-task-item-title">{t.title}</div>
+                            {t.desc && (
+                              <div className="med-task-item-desc">{t.desc}</div>
+                            )}
+                          </div>
+                          {t.due ? (
+                            <div className="med-task-item-due">
+                              <span
+                                className={`med-task-due-pill ${isUrgent ? "urgent" : ""}`}
+                              >
+                                Due {t.due}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="med-task-item-actions">
-                          {t.due ? (
-                            <span
-                              className={`med-task-due-pill ${isUrgent ? "urgent" : ""}`}
-                            >
-                              Due {t.due}
-                            </span>
-                          ) : null}
-
                           <button
                             onClick={() => openDeleteConfirmModal(t.id, "task")}
                             disabled={deletingIds.has(t.id)}
@@ -1059,10 +1054,7 @@ export default function MedicationsAndTasksTab({
       {/* ══ FORM VIEW ══ */}
       {view === "form" && (
         <div id="tasks-form-view">
-          <div
-            className="card"
-            style={{ position: "relative", padding: "16px 48px 40px" }}
-          >
+          <div className="card med-task-form-card">
             {/* ── Back icon — absolutely positioned top-left, no layout impact ── */}
             <button
               type="button"
@@ -1207,13 +1199,7 @@ export default function MedicationsAndTasksTab({
                 </p>
 
                 {!showDatePicker && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "16px",
-                      justifyContent: "center",
-                    }}
-                  >
+                  <div className="med-task-choice-container">
                     <button
                       className="med-task-choice-btn"
                       onClick={() => {
@@ -1227,26 +1213,6 @@ export default function MedicationsAndTasksTab({
                           const formatted = formatDate(prefill);
                           setNextVisitDisplay(formatted);
                         }
-                      }}
-                      style={{
-                        padding: "12px 48px",
-                        borderRadius: "12px",
-                        border: "1.5px solid #E6EAF2",
-                        background: "white",
-                        fontSize: "15px",
-                        fontWeight: 600,
-                        color: "#0E1A34",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        minWidth: "130px",
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = "#2A66FF";
-                        e.currentTarget.style.color = "#2A66FF";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = "#E6EAF2";
-                        e.currentTarget.style.color = "#0E1A34";
                       }}
                     >
                       Yes
@@ -1265,26 +1231,6 @@ export default function MedicationsAndTasksTab({
                           }),
                         );
                         goToStep(2);
-                      }}
-                      style={{
-                        padding: "12px 48px",
-                        borderRadius: "12px",
-                        border: "1.5px solid #E6EAF2",
-                        background: "white",
-                        fontSize: "15px",
-                        fontWeight: 600,
-                        color: "#0E1A34",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        minWidth: "130px",
-                      }}
-                      onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = "#2A66FF";
-                        e.currentTarget.style.color = "#2A66FF";
-                      }}
-                      onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = "#E6EAF2";
-                        e.currentTarget.style.color = "#0E1A34";
                       }}
                     >
                       No
