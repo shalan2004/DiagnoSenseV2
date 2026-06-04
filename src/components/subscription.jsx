@@ -1057,7 +1057,7 @@ const doCharge = async () => {
                         className="ppu-card"
                         style={{ pointerEvents: "none" }}
                       >
-                        <div>
+                        <div className="pay-title">
                           <div className="ppu-lbl">Pay-per-use</div>
                           <div className="ppu-sub">Most popular plan</div>
                           <div className="ppu-price">

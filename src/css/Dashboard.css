@@ -2430,6 +2430,9 @@ body {
   #dsn-main .dsn-top-wrapper {
     padding: 16px 14px 12px;  
   }
+  #dsn-main .dsn-active-avatar {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
