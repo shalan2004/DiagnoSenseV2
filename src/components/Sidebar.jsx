@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { useSidebar } from "./SidebarContext";
 import { useTheme } from "./ThemeContext";
@@ -240,7 +240,7 @@ export default function Sidebar({ activePage }) {
       {/* ── Mobile Overlay Menu ── */}
       <div className={`dm-mobile-drawer-menu ${isMobileMenuOpen ? "open" : ""}`}>
         <div className="dm-mobile-header">
-          <img className="dm-mobile-logo" src={logo} alt="DiagnoSense" />
+          <img className="dm-mobile-logo" src={logo} alt="DiagnoSense" onClick={() => navigate("/")} style={{ cursor: 'pointer' }} />
           <button className="dm-mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -288,12 +288,12 @@ export default function Sidebar({ activePage }) {
           <div className="sidebar-logo" style={{ width: '100%', height: '42px', margin: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '1 1 auto' }}>
             {/* Expanded State: Full Logo */}
             <div className="logo-expanded-container" style={{ position: 'static', left: 'auto', transform: 'none', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img className="logo-expanded" src={logo} alt="DiagnoSense" style={{ display: 'block', width: '120px', height: '42px', objectFit: 'contain', margin: '0 auto 0 calc(50% - 70px)', flexShrink: 0 }} />
+              <img className="logo-expanded" src={logo} alt="DiagnoSense" onClick={() => navigate("/")} style={{ display: 'block', width: '120px', height: '42px', objectFit: 'contain', margin: '0 auto 0 calc(50% - 70px)', flexShrink: 0, cursor: 'pointer' }} />
             </div>
 
             {/* Collapsed State: Stethoscope Icon + Hover Expand Button */}
             <div className="sidebar-logo-slot">
-              <img className="logo-collapsed" src={stethoscopeLogo} alt="DiagnoSense" />
+              <img className="logo-collapsed" src={stethoscopeLogo} alt="DiagnoSense" onClick={() => navigate("/")} style={{ cursor: 'pointer' }} />
               <button
                 className="logo-expand-btn"
                 onClick={toggleSidebar}
