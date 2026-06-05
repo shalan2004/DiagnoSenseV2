@@ -45,6 +45,7 @@ const apiCall = async (endpoint, options = {}) => {
           deleteCookie('user_token');
           deleteCookie('user');
           deleteCookie('isAuthenticated');
+          window.location.href = '/login';
         }
 
         return {
@@ -128,9 +129,12 @@ export const logoutAPI = async (type = "doctor") => {
   const token = getCookie('user_token');
 
   if (!token) {
+    deleteCookie('user_token');
+    deleteCookie('user');
+    deleteCookie('isAuthenticated');
     return {
-      success: false,
-      message: 'No token found',
+      success: true,
+      message: 'Logged out successfully (no token found)',
     };
   }
 
@@ -295,6 +299,7 @@ export const analyzeReportAPI = async (formData) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
 
       return {
@@ -352,6 +357,7 @@ export const getPatientAnalysisAPI = async (patientId) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
 
       return {
@@ -446,6 +452,7 @@ export const addPatientAPI = async (formData) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
       return {
         success: false,
@@ -699,6 +706,7 @@ export const getPatientNextVisitAPI = async (patientId) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
       console.warn('[getPatientNextVisit] endpoint returned', response.status, '— no GET visits support');
       return null;
@@ -762,6 +770,7 @@ export const getPatientForEditAPI = async (patientId) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
       return {
         success: false,
@@ -803,6 +812,7 @@ export const updatePatientAPI = async (patientId, formData) => {
         deleteCookie('user_token');
         deleteCookie('user');
         deleteCookie('isAuthenticated');
+        window.location.href = '/login';
       }
       return {
         success: false,
