@@ -190,7 +190,6 @@ function Subscription() {
   const [selectedAmt, setSelectedAmt] = useState(null);
   const [isCharged, setIsCharged] = useState(false);
   const [chargeHint, setChargeHint] = useState("");
-  const [historyFilter, setHistoryFilter] = useState("30days");
 
   const [plans, setPlans] = useState([]);
   const [isPlansLoading, setIsPlansLoading] = useState(true);
@@ -1367,26 +1366,6 @@ const doCharge = async () => {
               <div className="b-card">
                 <div className="h-header">
                   <div className="h-title">Payment History</div>
-                  <div className="f-btns">
-                    <button
-                      className={`f-btn ${historyFilter === "30days" ? "act" : ""}`}
-                      onClick={() => setHistoryFilter("30days")}
-                    >
-                      Last 30 days
-                    </button>
-                    <button
-                      className={`f-btn ${historyFilter === "6months" ? "act" : ""}`}
-                      onClick={() => setHistoryFilter("6months")}
-                    >
-                      6 months
-                    </button>
-                    <button
-                      className={`f-btn ${historyFilter === "1year" ? "act" : ""}`}
-                      onClick={() => setHistoryFilter("1year")}
-                    >
-                      1 year
-                    </button>
-                  </div>
                 </div>
                 <div className="table-responsive">
                   <table>
