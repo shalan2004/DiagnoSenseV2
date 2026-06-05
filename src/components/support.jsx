@@ -254,21 +254,7 @@ function Support() {
               </p>
             </div>
           </div>
-          <div
-            className="status-badge"
-            
-          >
-            <span
-              className="status-dot"
-              style={{
-                width: "8px",
-                height: "8px",
-                background: "var(--status-stable-text)",
-                borderRadius: "50%",
-              }}
-            ></span>
-            All Systems Operational
-          </div>
+
         </div>
 
         <div className="content-grid">
@@ -587,15 +573,6 @@ function Support() {
                       </span>
                     )}
                   </div>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--dm-text-muted)",
-                      marginTop: "4px",
-                    }}
-                  >
-                    Allowed: PDF, PNG, JPG · Max 10 MB
-                  </p>
                 </div>
 
                 {/* Success banner */}
@@ -639,7 +616,7 @@ function Support() {
                     <span>{formError}</span>
                   </div>
                 )}
-                <div className="form-actions">
+                <div className="form-actions" style={{ marginTop: "24px" }}>
                   <button
                     type="submit"
                     className={`btn btn-primary${isSubmitting ? " loading" : ""}`}
