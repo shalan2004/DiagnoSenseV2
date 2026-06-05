@@ -300,7 +300,8 @@ const Settings = () => {
           navigate("/login");
         }, 1500);
       } else {
-        const fieldErrors = res.errors ? Object.values(res.errors).flat() : [];
+        const errorObj = res.errors || (res.data && typeof res.data === 'object' ? res.data : null);
+        const fieldErrors = errorObj ? Object.values(errorObj).flat() : [];
         setPasswordFeedback({
           type: "error",
           messages: fieldErrors.length > 0 ? fieldErrors : null,
