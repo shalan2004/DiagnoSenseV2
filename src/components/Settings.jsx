@@ -527,11 +527,10 @@ const Settings = () => {
 
               {profileFeedback.message && (
                 <div
-                  className={`settings-page-profile-feedback ${
-                    profileFeedback.type === "success"
+                  className={`settings-page-profile-feedback ${profileFeedback.type === "success"
                       ? "settings-page-profile-feedback--success"
                       : "settings-page-profile-feedback--error"
-                  }`}
+                    }`}
                 >
                   {profileFeedback.type === "success" ? "✓" : "✕"}{" "}
                   {profileFeedback.message}
@@ -708,11 +707,10 @@ const Settings = () => {
 
               {(passwordFeedback.message || passwordFeedback.messages) && (
                 <div
-                  className={`settings-page-password-feedback ${
-                    passwordFeedback.type === "success"
+                  className={`settings-page-password-feedback ${passwordFeedback.type === "success"
                       ? "settings-page-feedback--success"
                       : "settings-page-feedback--error"
-                  }`}
+                    }`}
                 >
                   {passwordFeedback.type === "success" ? (
                     <span>✓ {passwordFeedback.message}</span>
@@ -906,7 +904,7 @@ const Settings = () => {
                   deleteFeedback.type === "error" && (
                     <div className="settings-page-password-feedback settings-page-feedback--error">
                       {deleteFeedback.messages &&
-                      deleteFeedback.messages.length > 1 ? (
+                        deleteFeedback.messages.length > 1 ? (
                         <ul className="settings-page-feedback-list">
                           {deleteFeedback.messages.map((msg, i) => (
                             <li key={i}>✕ {msg}</li>

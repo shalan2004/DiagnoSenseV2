@@ -31,7 +31,7 @@ const AddPatient = () => {
     }, 5000);
   };
   const [currentStep, setCurrentStep] = useState(1);
-  const { unreadCount, openNotifications } = useNotifications();
+  const { unreadCount, openNotifications, triggerToast } = useNotifications();
   const [showProcessingScreen, setShowProcessingScreen] = useState(false);
   const [pollingInfo, setPollingInfo] = useState({
     patientId: null,
@@ -587,12 +587,27 @@ const AddPatient = () => {
   const ALLOWED_MIME = ["application/pdf", "image/jpeg"];
 
   const handleFiles = (category, files) => {
+    let hasInvalidFiles = false;
+
     const validEntries = Array.from(files)
       .filter((file) => {
-        const ext = "." + file.name.split(".").pop().toLowerCase();
-        return ALLOWED_EXTS.includes(ext) && file.size <= 10 * 1024 * 1024;
+        const isValidType = file.type === "application/pdf" || file.type === "image/jpeg";
+        const isValidSize = file.size <= 10485760; // 10MB
+        if (!isValidType || !isValidSize) {
+          hasInvalidFiles = true;
+          return false;
+        }
+        return true;
       })
       .map((file) => ({ file, blobUrl: URL.createObjectURL(file) }));
+
+    if (hasInvalidFiles) {
+      triggerToast({
+        title: "Validation Error",
+        message: "Invalid file. Please upload only PDF or JPG files under 10MB.",
+        isFrontendOnly: true
+      });
+    }
 
     const categoryErrorKey =
       category === "history" ? "medical_history" : category;
@@ -1813,6 +1828,13 @@ const AddPatient = () => {
                       onClick={() =>
                         document.getElementById(`${category}Input`).click()
                       }
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                          handleFiles(category, e.dataTransfer.files);
+                        }
+                      }}
                     >
                       <svg
                         className="dropzone-icon"

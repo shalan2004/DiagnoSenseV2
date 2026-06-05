@@ -434,7 +434,8 @@ export function NotificationsProvider({ children }) {
           setLiveToast({
             id: safeId,
             title: notification.title || "Message",
-            message: notification.message || notification.body || ""
+            message: notification.message || notification.body || "",
+            isFrontendOnly: notification.isFrontendOnly || false
           });
           setTimeout(() => setLiveToast(null), 5000);
         }
@@ -460,11 +461,13 @@ export function NotificationsProvider({ children }) {
           flexDirection: "column",
           gap: "8px",
           animation: "slideInRight 0.3s ease-out forwards",
-          cursor: "pointer"
+          cursor: liveToast.isFrontendOnly ? "default" : "pointer"
         }}
           onClick={() => {
             setLiveToast(null);
-            openNotifications();
+            if (!liveToast.isFrontendOnly) {
+              openNotifications();
+            }
           }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "var(--text-primary, #111827)" }}>
