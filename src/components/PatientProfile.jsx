@@ -35,6 +35,7 @@ import { useTranscription } from "../hooks/useTranscription";
 import { getDirection, getTextAlign } from "../utils/textUtils";
 
 import diagnobotImg from "../assets/DiagnoBot.png";
+import diagnobotCryingImg from "../assets/Diagnobot_Crying.png";
 import { useSidebar } from "./SidebarContext";
 import { useSubscription } from "./SubscriptionContext";
 import Sidebar from "./Sidebar";
@@ -89,6 +90,7 @@ const PatientProfile = () => {
   const [overviewData, setOverviewData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   // ── Evidence Panel state ──
   const [sourceFile, setSourceFile] = useState(null);
@@ -594,6 +596,9 @@ const PatientProfile = () => {
         if (res.success === false) {
           console.error("[overview] error", res.message);
           setOverviewError(res.message || "Failed to load patient overview");
+          if (res.status === 404) {
+            setNotFound(true);
+          }
         } else {
           // API shape: { success: true, data: [ {...patientObject...} ] }
           // Extract the first element of the array; fall back gracefully
@@ -1955,6 +1960,25 @@ const PatientProfile = () => {
       );
     };
   }, [isSidebarCollapsed]);
+
+  if (notFound) {
+    return (
+      <div className="pp-scope patient-profile-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', textAlign: 'center' }}>
+        <img src={diagnobotCryingImg} alt="Patient Not Found" style={{ width: '350px', height: 'auto', marginBottom: '24px' }} />
+        <h1 style={{ color: '#0A1C40', fontSize: '28px', fontWeight: 'bold', marginBottom: '12px', fontFamily: 'Inter, sans-serif' }}>Patient Not Found</h1>
+        <p style={{ color: '#4E5A73', fontSize: '16px', marginBottom: '32px', maxWidth: '400px', lineHeight: '1.5', fontFamily: 'Inter, sans-serif' }}>
+          The patient profile you are looking for does not exist or has been removed.
+        </p>
+        <button 
+          className="pp-edit-file-btn"
+          style={{ padding: '12px 24px', fontSize: '15px' }}
+          onClick={() => navigate('/patients')}
+        >
+          Back to Patients List
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="pp-scope patient-profile-page">

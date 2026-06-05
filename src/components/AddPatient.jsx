@@ -896,13 +896,8 @@ const AddPatient = () => {
         }
 
         if (result.status === 403 || result.message === "This action is unauthorized.") {
-          // setFieldErrors({
-          //   _general: "Subscription required to add new patients.",
-          // });
-          setFieldErrors({
-            _general: result.message || "Subscription required to add new patients.",
-          });
           setIsProcessing(false);
+          navigate("/unauthorized");
           return;
         }
 

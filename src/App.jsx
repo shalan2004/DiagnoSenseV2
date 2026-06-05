@@ -16,6 +16,7 @@ import Settings from './components/Settings.jsx';
 import Subscription from './components/subscription.jsx';
 import Integration from "./components/integration.jsx";
 import Support from "./components/support.jsx";
+import Unauthorized from "./components/Unauthorized.jsx";
 import "./App.css";
 import { SidebarProvider } from "./components/SidebarContext";
 import { SubscriptionProvider } from "./components/SubscriptionContext";
@@ -159,6 +160,7 @@ function App() {
         <Route path="/payment-success" element={<PaymentSuccess />} />
 
         <Route path="/loading" element={<ProcessingReports />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/evidence" element={<EvidencePanel />} />
         <Route path="/integration" element={<Integration />} />
 
