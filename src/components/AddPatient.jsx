@@ -16,6 +16,7 @@ import { getDirection, getTextAlign } from "../utils/textUtils";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import diagnobotCryingImg from "../assets/Diagnobot_Crying.png";
+import Unauthorized from "./Unauthorized";
 
 const AddPatient = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const AddPatient = () => {
   const patientState = location.state?.patientData;
   const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
   const [notFound, setNotFound] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: "", isSuccess: false });
   const showToast = (message, isSuccess) => {
     setToast({ isOpen: true, message, isSuccess });
@@ -298,8 +300,11 @@ const AddPatient = () => {
           });
         } else if (res.success === false) {
           const isNotFound = res.status === 404 || (res.message && res.message.toLowerCase().includes("not found"));
+          const isForbidden = res.status === 403 || res.status === 401 || (res.message && (res.message.toLowerCase().includes("unauthorized") || res.message.toLowerCase().includes("forbidden") || res.message.toLowerCase().includes("this action is unauthorized")));
           if (isNotFound) {
             setNotFound(true);
+          } else if (isForbidden) {
+            setIsUnauthorized(true);
           } else {
             setFieldErrors((prev) => ({
               ...prev,
@@ -1048,6 +1053,10 @@ const AddPatient = () => {
         </button>
       </div>
     );
+  }
+
+  if (isUnauthorized) {
+    return <Unauthorized />;
   }
 
   return (

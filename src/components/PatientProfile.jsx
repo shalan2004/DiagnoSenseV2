@@ -36,6 +36,7 @@ import { getDirection, getTextAlign } from "../utils/textUtils";
 
 import diagnobotImg from "../assets/DiagnoBot.png";
 import diagnobotCryingImg from "../assets/Diagnobot_Crying.png";
+import Unauthorized from "./Unauthorized";
 import { useSidebar } from "./SidebarContext";
 import { useSubscription } from "./SubscriptionContext";
 import Sidebar from "./Sidebar";
@@ -91,6 +92,7 @@ const PatientProfile = () => {
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   // ── Evidence Panel state ──
   const [sourceFile, setSourceFile] = useState(null);
@@ -596,8 +598,12 @@ const PatientProfile = () => {
         if (res.success === false) {
           console.error("[overview] error", res.message);
           setOverviewError(res.message || "Failed to load patient overview");
-          if (res.status === 404) {
+          const isNotFound = res.status === 404 || (res.message && res.message.toLowerCase().includes("not found"));
+          const isForbidden = res.status === 403 || res.status === 401 || (res.message && (res.message.toLowerCase().includes("unauthorized") || res.message.toLowerCase().includes("forbidden") || res.message.toLowerCase().includes("this action is unauthorized")));
+          if (isNotFound) {
             setNotFound(true);
+          } else if (isForbidden) {
+            setIsUnauthorized(true);
           }
         } else {
           // API shape: { success: true, data: [ {...patientObject...} ] }
@@ -1960,6 +1966,10 @@ const PatientProfile = () => {
       );
     };
   }, [isSidebarCollapsed]);
+
+  if (isUnauthorized) {
+    return <Unauthorized />;
+  }
 
   if (notFound) {
     return (
