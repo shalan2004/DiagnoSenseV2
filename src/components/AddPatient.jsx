@@ -15,6 +15,7 @@ import { useTranscription } from "../hooks/useTranscription";
 import { getDirection, getTextAlign } from "../utils/textUtils";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import diagnobotCryingImg from "../assets/Diagnobot_Crying.png";
 
 const AddPatient = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const AddPatient = () => {
   const isEditMode = !!patientId;
   const patientState = location.state?.patientData;
   const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
+  const [notFound, setNotFound] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: "", isSuccess: false });
   const showToast = (message, isSuccess) => {
     setToast({ isOpen: true, message, isSuccess });
@@ -295,10 +297,15 @@ const AddPatient = () => {
             existingFilesCount: existingFilesCount
           });
         } else if (res.success === false) {
-           setFieldErrors((prev) => ({
-             ...prev,
-             _general: res.message || "Failed to load patient data.",
-           }));
+          const isNotFound = res.status === 404 || (res.message && res.message.toLowerCase().includes("not found"));
+          if (isNotFound) {
+            setNotFound(true);
+          } else {
+            setFieldErrors((prev) => ({
+              ...prev,
+              _general: res.message || "Failed to load patient data.",
+            }));
+          }
         }
       } catch (err) {
         console.error("Error mapping patient data:", err);
@@ -1020,6 +1027,25 @@ const AddPatient = () => {
             <p style={{ color: "#6B7280", fontSize: "16px" }}>Loading patient data…</p>
           </div>
         </main>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="pp-scope patient-profile-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', textAlign: 'center' }}>
+        <img src={diagnobotCryingImg} alt="Patient Not Found" style={{ width: '350px', height: 'auto', marginBottom: '24px' }} />
+        <h1 style={{ color: '#0A1C40', fontSize: '28px', fontWeight: 'bold', marginBottom: '12px', fontFamily: 'Inter, sans-serif' }}>Patient Not Found</h1>
+        <p style={{ color: '#4E5A73', fontSize: '16px', marginBottom: '32px', maxWidth: '400px', lineHeight: '1.5', fontFamily: 'Inter, sans-serif' }}>
+          The patient profile you are looking for does not exist or has been removed.
+        </p>
+        <button 
+          className="pp-edit-file-btn"
+          style={{ padding: '12px 24px', fontSize: '15px' }}
+          onClick={() => navigate('/patients')}
+        >
+          Back to Patients List
+        </button>
       </div>
     );
   }
