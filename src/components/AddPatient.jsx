@@ -72,7 +72,7 @@ const AddPatient = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
-  const { credits, isCreditsLoading, refreshCredits } = useSubscription();
+  const { credits, isCreditsLoading, refreshCredits, subscriptionData } = useSubscription();
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -683,6 +683,22 @@ const AddPatient = () => {
   };
 
   const handleProcess = async () => {
+    const isPayPerUse =
+      subscriptionData?.billing_mode === "pay_per_use" ||
+      subscriptionData?.billing_mode === "pay-per-use";
+    const isSubscription = subscriptionData?.billing_mode === "subscription";
+    const hasActivePlan =
+      (isSubscription || isPayPerUse) &&
+      (!subscriptionData?.status || subscriptionData.status.toLowerCase() === "active");
+
+    if (!hasActivePlan) {
+      setFieldErrors({
+        _general: "Active subscription required. Please upgrade your plan to process and analyze reports.",
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     // If patient already created successfully but AI analysis failed, we can retry the AI analysis directly
     if (!isEditMode && pollingInfo.patientId) {
       setIsProcessing(true);
@@ -897,6 +913,23 @@ const AddPatient = () => {
 
         if (result.status === 403 || result.message === "This action is unauthorized.") {
           setIsProcessing(false);
+          
+          const isPayPerUse =
+            subscriptionData?.billing_mode === "pay_per_use" ||
+            subscriptionData?.billing_mode === "pay-per-use";
+          const isSubscription = subscriptionData?.billing_mode === "subscription";
+          const hasActivePlan =
+            (isSubscription || isPayPerUse) &&
+            (!subscriptionData?.status || subscriptionData.status.toLowerCase() === "active");
+
+          if (!hasActivePlan || result.message?.toLowerCase().includes("subscription") || result.message?.toLowerCase().includes("plan")) {
+            setFieldErrors({
+              _general: "Active subscription required. Please upgrade your plan to perform this action.",
+            });
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+          }
+
           navigate("/unauthorized");
           return;
         }
