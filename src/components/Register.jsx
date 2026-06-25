@@ -68,6 +68,34 @@ const Register = ({ onRegisterSuccess }) => {
     return { score: 4, label: "Strong", color: "#27ae60" };
   };
 
+  const getPasswordRequirements = (password) => [
+  {
+    id: "length",
+    label: "At least 8 characters",
+    met: password.length >= 8,
+  },
+  {
+    id: "uppercase",
+    label: "Contains an uppercase letter",
+    met: /[A-Z]/.test(password),
+  },
+  {
+    id: "lowercase",
+    label: "Contains a lowercase letter",
+    met: /[a-z]/.test(password),
+  },
+  {
+    id: "number",
+    label: "Contains a number",
+    met: /[0-9]/.test(password),
+  },
+  {
+    id: "special",
+    label: "Contains a special character",
+    met: /[^A-Za-z0-9]/.test(password),
+  },
+];
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const firstName = e.target.firstName.value;
@@ -246,29 +274,95 @@ const Register = ({ onRegisterSuccess }) => {
           </div>
 
           {passwordValue && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
-              <div style={{ display: "flex", gap: "6px", flex: 1, marginRight: "12px" }}>
-                {[1, 2, 3, 4].map((level) => {
-                  const strength = getPasswordStrength(passwordValue);
-                  const isActive = level <= strength.score;
-                  return (
-                    <div
-                      key={level}
-                      style={{
-                        height: "4px",
-                        flex: 1,
-                        borderRadius: "4px",
-                        backgroundColor: isActive ? strength.color : "#e2e8f0",
-                        transition: "background-color 0.3s ease"
-                      }}
-                    />
-                  );
-                })}
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
+                <div style={{ display: "flex", gap: "6px", flex: 1, marginRight: "12px" }}>
+                  {[1, 2, 3, 4].map((level) => {
+                    const strength = getPasswordStrength(passwordValue);
+                    const isActive = level <= strength.score;
+                    return (
+                      <div
+                        key={level}
+                        style={{
+                          height: "4px",
+                          flex: 1,
+                          borderRadius: "4px",
+                          backgroundColor: isActive ? strength.color : "#e2e8f0",
+                          transition: "background-color 0.3s ease"
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                <span style={{ fontSize: "12px", fontWeight: "600", color: getPasswordStrength(passwordValue).color }}>
+                  {getPasswordStrength(passwordValue).label}
+                </span>
               </div>
-              <span style={{ fontSize: "12px", fontWeight: "600", color: getPasswordStrength(passwordValue).color }}>
-                {getPasswordStrength(passwordValue).label}
-              </span>
-            </div>
+
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: "10px 0 2px 0",
+                  margin: 0,
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "6px 12px",
+                }}
+                aria-label="Password requirements"
+              >
+                {getPasswordRequirements(passwordValue).map((req) => (
+                  <li
+                    key={req.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "9px",
+                      fontWeight: "400",
+                      color: req.met ? "#2ecc71" : "#94a3b8",
+                      transition: "color 0.25s ease",
+                    }}
+                    aria-checked={req.met}
+                    role="checkbox"
+                  >
+                    <span
+                      style={{
+                        width: "13px",
+                        height: "13px",
+                        borderRadius: "50%",
+                        border: `1.5px solid ${req.met ? "#2ecc71" : "#cbd5e1"}`,
+                        backgroundColor: req.met ? "#2ecc71" : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        transition: "all 0.25s ease",
+                      }}
+                      aria-hidden="true"
+                    >
+                      {req.met && (
+                        <svg
+                          width="9"
+                          height="9"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M2 6.5L4.5 9L10 3"
+                            stroke="white"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                    {req.label}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
 
