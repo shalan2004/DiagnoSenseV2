@@ -109,6 +109,7 @@ export const loginAPI = async (contact, password, type = "doctor") => {
   const result = await apiCall(`/api/v1/auth/login/${type}`, {
     method: 'POST',
     body: JSON.stringify({ contact, password }),
+    skipAuthClear: true,
   });
 
   const token = result?.token || result?.data?.token;

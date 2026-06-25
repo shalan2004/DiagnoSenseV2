@@ -66,18 +66,21 @@ const Login = ({ onForgotPassword }) => {
       navigate("/dashboard", { replace: true });
     } else {
       const validationData = result.data;
+      let messages = [];
+
       if (validationData && typeof validationData === "object") {
-        const messages = Object.values(validationData)
+        messages = Object.values(validationData)
           .flat()
           .filter((msg) => typeof msg === "string");
-        if (messages.length > 0) {
-          setError(messages);
-        } else {
-          setError([result.message || "Login failed. Please try again."]);
-        }
-      } else {
-        setError([result.message || "Login failed. Please try again."]);
       }
+
+      if (messages.length === 0) {
+        messages = [result.message || "Login failed. Please try again."];
+      }
+
+      setError(messages);
+      setIsLoading(false); 
+      return; 
     }
     setIsLoading(false);
   };
