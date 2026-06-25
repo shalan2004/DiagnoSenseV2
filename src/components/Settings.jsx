@@ -368,16 +368,19 @@ const Settings = () => {
           message: res.message || "Account deleted successfully.",
           messages: null,
         });
-        setDeleteCountdown(15);
+        setDeleteCountdown(10);
       } else {
-        const fieldErrors = res.errors ? Object.values(res.errors).flat() : [];
+        const errorObj = res.errors || res.data || null;
+        let fieldErrors = [];
+
+        if (errorObj && typeof errorObj === 'object') {
+          fieldErrors = Object.values(errorObj).flat();
+        }
+
         setDeleteFeedback({
           type: "error",
           messages: fieldErrors.length > 0 ? fieldErrors : null,
-          message:
-            fieldErrors.length === 0
-              ? res.message || "Failed to delete account."
-              : null,
+          message: fieldErrors.length === 0 ? (res.message || "Failed to delete account.") : null,
         });
       }
     } catch (err) {
@@ -528,8 +531,8 @@ const Settings = () => {
               {profileFeedback.message && (
                 <div
                   className={`settings-page-profile-feedback ${profileFeedback.type === "success"
-                      ? "settings-page-profile-feedback--success"
-                      : "settings-page-profile-feedback--error"
+                    ? "settings-page-profile-feedback--success"
+                    : "settings-page-profile-feedback--error"
                     }`}
                 >
                   {profileFeedback.type === "success" ? "✓" : "✕"}{" "}
@@ -708,8 +711,8 @@ const Settings = () => {
               {(passwordFeedback.message || passwordFeedback.messages) && (
                 <div
                   className={`settings-page-password-feedback ${passwordFeedback.type === "success"
-                      ? "settings-page-feedback--success"
-                      : "settings-page-feedback--error"
+                    ? "settings-page-feedback--success"
+                    : "settings-page-feedback--error"
                     }`}
                 >
                   {passwordFeedback.type === "success" ? (
