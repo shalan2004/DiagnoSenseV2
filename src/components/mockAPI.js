@@ -774,6 +774,7 @@ export const getPatientForEditAPI = async (patientId) => {
       }
       return {
         success: false,
+        status: response.status,
         message: data.message || 'Something went wrong',
         errors: data.errors || null,
       };

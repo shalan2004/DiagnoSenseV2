@@ -39,3 +39,11 @@ et --hard*
 *.njsproj
 *.sln
 *.sw?
+
+# Local agents and tools
+.agents/
+.impeccable/
+
+# Project documentation notes
+DESIGN.md
+PRODUCT.md

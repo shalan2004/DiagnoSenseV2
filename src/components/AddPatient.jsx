@@ -15,6 +15,8 @@ import { useTranscription } from "../hooks/useTranscription";
 import { getDirection, getTextAlign } from "../utils/textUtils";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import diagnobotCryingImg from "../assets/Diagnobot_Crying.png";
+import Unauthorized from "./Unauthorized";
 
 const AddPatient = () => {
   const navigate = useNavigate();
@@ -23,6 +25,8 @@ const AddPatient = () => {
   const isEditMode = !!patientId;
   const patientState = location.state?.patientData;
   const [isFetching, setIsFetching] = useState(isEditMode && !patientState);
+  const [notFound, setNotFound] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [toast, setToast] = useState({ isOpen: false, message: "", isSuccess: false });
   const showToast = (message, isSuccess) => {
     setToast({ isOpen: true, message, isSuccess });
@@ -72,7 +76,7 @@ const AddPatient = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
-  const { credits, isCreditsLoading, refreshCredits } = useSubscription();
+  const { credits, isCreditsLoading, refreshCredits, subscriptionData } = useSubscription();
 
   const [fieldErrors, setFieldErrors] = useState({});
 
@@ -295,10 +299,18 @@ const AddPatient = () => {
             existingFilesCount: existingFilesCount
           });
         } else if (res.success === false) {
-           setFieldErrors((prev) => ({
-             ...prev,
-             _general: res.message || "Failed to load patient data.",
-           }));
+          const isNotFound = res.status === 404 || (res.message && res.message.toLowerCase().includes("not found"));
+          const isForbidden = res.status === 403 || res.status === 401 || (res.message && (res.message.toLowerCase().includes("unauthorized") || res.message.toLowerCase().includes("forbidden") || res.message.toLowerCase().includes("this action is unauthorized")));
+          if (isNotFound) {
+            setNotFound(true);
+          } else if (isForbidden) {
+            setIsUnauthorized(true);
+          } else {
+            setFieldErrors((prev) => ({
+              ...prev,
+              _general: res.message || "Failed to load patient data.",
+            }));
+          }
         }
       } catch (err) {
         console.error("Error mapping patient data:", err);
@@ -683,6 +695,22 @@ const AddPatient = () => {
   };
 
   const handleProcess = async () => {
+    const isPayPerUse =
+      subscriptionData?.billing_mode === "pay_per_use" ||
+      subscriptionData?.billing_mode === "pay-per-use";
+    const isSubscription = subscriptionData?.billing_mode === "subscription";
+    const hasActivePlan =
+      (isSubscription || isPayPerUse) &&
+      (!subscriptionData?.status || subscriptionData.status.toLowerCase() === "active");
+
+    if (!hasActivePlan) {
+      setFieldErrors({
+        _general: "Active subscription required. Please upgrade your plan to process and analyze reports.",
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     // If patient already created successfully but AI analysis failed, we can retry the AI analysis directly
     if (!isEditMode && pollingInfo.patientId) {
       setIsProcessing(true);
@@ -897,6 +925,23 @@ const AddPatient = () => {
 
         if (result.status === 403 || result.message === "This action is unauthorized.") {
           setIsProcessing(false);
+          
+          const isPayPerUse =
+            subscriptionData?.billing_mode === "pay_per_use" ||
+            subscriptionData?.billing_mode === "pay-per-use";
+          const isSubscription = subscriptionData?.billing_mode === "subscription";
+          const hasActivePlan =
+            (isSubscription || isPayPerUse) &&
+            (!subscriptionData?.status || subscriptionData.status.toLowerCase() === "active");
+
+          if (!hasActivePlan || result.message?.toLowerCase().includes("subscription") || result.message?.toLowerCase().includes("plan")) {
+            setFieldErrors({
+              _general: "Active subscription required. Please upgrade your plan to perform this action.",
+            });
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+          }
+
           navigate("/unauthorized");
           return;
         }
@@ -989,6 +1034,29 @@ const AddPatient = () => {
         </main>
       </div>
     );
+  }
+
+  if (notFound) {
+    return (
+      <div className="pp-scope patient-profile-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f8fafc', textAlign: 'center' }}>
+        <img src={diagnobotCryingImg} alt="Patient Not Found" style={{ width: '350px', height: 'auto', marginBottom: '24px' }} />
+        <h1 style={{ color: '#0A1C40', fontSize: '28px', fontWeight: 'bold', marginBottom: '12px', fontFamily: 'Inter, sans-serif' }}>Patient Not Found</h1>
+        <p style={{ color: '#4E5A73', fontSize: '16px', marginBottom: '32px', maxWidth: '400px', lineHeight: '1.5', fontFamily: 'Inter, sans-serif' }}>
+          The patient profile you are looking for does not exist or has been removed.
+        </p>
+        <button 
+          className="pp-edit-file-btn"
+          style={{ padding: '12px 24px', fontSize: '15px' }}
+          onClick={() => navigate('/patients')}
+        >
+          Back to Patients List
+        </button>
+      </div>
+    );
+  }
+
+  if (isUnauthorized) {
+    return <Unauthorized />;
   }
 
   return (
